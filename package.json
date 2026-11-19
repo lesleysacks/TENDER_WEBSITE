@@ -1,0 +1,16 @@
+{
+  "name": "pureline-hygiene-website",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PureLine Hygiene website, tender estimator and two-stage lead capture.",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "test": "node --test \"tests/*.test.js\"",
+    "test:e2e": "node tests/e2e/browser-smoke.mjs",
+    "leads": "node server/leads-cli.js"
+  }
+}

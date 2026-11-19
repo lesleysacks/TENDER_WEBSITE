@@ -1,0 +1,5 @@
+# Lead data contains personal information (POPIA). Never commit or publish it.
+data/
+*.csv
+node_modules/
+tests/e2e/output/

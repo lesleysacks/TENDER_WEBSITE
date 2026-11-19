@@ -1,0 +1,13 @@
+{
+  // Live Server reloads the page when any project file changes. Saving an enquiry writes data/leads.json,
+  // and the browser tests write to tests/e2e/output, so ignore those to stop the page reloading mid-enquiry.
+  "liveServer.settings.ignoreFiles": [
+    "data/**",
+    "tests/**",
+    "server/**",
+    "docs/**",
+    "**/*.md",
+    "package.json",
+    ".vscode/**"
+  ]
+}

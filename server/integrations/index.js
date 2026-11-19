@@ -1,0 +1,151 @@
+'use strict';
+
+/*
+ * Future integration points: Website → Backend → Google Apps Script → Google Sheets lead register
+ * → business email / WhatsApp follow-up.
+ *
+ * Nothing here is live until the business supplies credentials through environment variables.
+ * Without them every channel reports "not configured" and the lead is only stored by this server.
+ */
+
+const crypto = require('node:crypto');
+const { STATUS_LABELS, getLeadType } = require('../../shared/lead-schema');
+const { formatRand } = require('../../shared/pricing');
+
+const yesNo = (value) => (value ? 'Yes' : 'No');
+
+/** One row of the Google Sheets lead register, in the column order agreed with the business. */
+function toLeadRegisterRow(lead) {
+  const req = lead.requirements || {};
+  const contact = lead.contact || {};
+  return {
+    'Lead ID': lead.id,
+    Date: lead.createdAt,
+    Name: contact.fullName || '',
+    Company: contact.company || '',
+    Location: contact.location || '',
+    Email: contact.email || '',
+    Phone: contact.phone || '',
+    Quantity: req.quantity,
+    'Unit Price': formatRand(req.unitPriceCents),
+    Total: formatRand(req.totalCents),
+    'Price Wanted': req.targetUnitPriceCents ? formatRand(req.targetUnitPriceCents) : '',
+    'Pack Price Wanted': req.targetPackPriceCents ? formatRand(req.targetPackPriceCents) : '',
+    'Estimated Selling Price': req.targetTotalCents ? formatRand(req.targetTotalCents) : '',
+    Packaging: yesNo(req.packaging),
+    Delivery: yesNo(req.delivery),
+    'Lead Type': getLeadType(req.leadType)?.registerLabel || '',
+    Status: STATUS_LABELS[lead.status] || lead.status,
+  };
+}
+
+function describeRequirements(lead) {
+  const req = lead.requirements;
+  return [
+    `Quantity: ${req.quantity.toLocaleString('en-ZA')} pads (${(req.packs ?? Math.floor(req.quantity / 10)).toLocaleString('en-ZA')} packs of 10)`,
+    `Price wanted per pad: ${formatRand(req.targetUnitPriceCents)}`,
+    `Price wanted per pack of 10: ${formatRand(req.targetPackPriceCents)}`,
+    `Estimated selling price: ${formatRand(req.targetTotalCents)}`,
+    `Our indicative price per pad: ${formatRand(req.unitPriceCents)} (total ${formatRand(req.totalCents)})`,
+    `Packaging required: ${yesNo(req.packaging)}`,
+    `Delivery required: ${yesNo(req.delivery)}`,
+    `Requirement: ${getLeadType(req.leadType)?.label || ''}`,
+  ].join('\n');
+}
+
+/** Internal notification for the sales team (sent once an email transport is configured). */
+function buildInternalNotification(lead) {
+  const c = lead.contact;
+  return {
+    subject: `New website enquiry ${lead.id}`,
+    text: [
+      `Lead reference: ${lead.id}`,
+      `Submitted: ${lead.submittedAt}`,
+      '',
+      `Name: ${c.fullName}`,
+      `Company: ${c.company || '-'}`,
+      `Location: ${c.location}`,
+      `Email: ${c.email}`,
+      `Phone: ${c.phone || '-'}`,
+      `WhatsApp follow-up permitted: ${yesNo(c.whatsappConsent)}`,
+      '',
+      describeRequirements(lead),
+    ].join('\n'),
+  };
+}
+
+/** Acknowledgement for the customer. It must not read as an order or booking confirmation. */
+function buildCustomerAcknowledgement(lead) {
+  return {
+    subject: `PureLine Hygiene enquiry ${lead.id} received`,
+    text: [
+      `Dear ${lead.contact.fullName},`,
+      '',
+      'Thank you for choosing PureLine Hygiene. Your enquiry has been received and will be reviewed by our team.',
+      `Your reference number is ${lead.id}.`,
+      '',
+      'This is not a confirmed order or booking. We will contact you regarding your requirements.',
+      '',
+      describeRequirements(lead),
+    ].join('\n'),
+  };
+}
+
+/** wa.me link with the reference prefilled. Only for the official WhatsApp Business number. */
+function buildWhatsAppLink(businessNumber, reference) {
+  const digits = String(businessNumber || '').replace(/\D/g, '');
+  if (!digits) return null;
+  const text = `Hello PureLine Hygiene, my enquiry reference is ${reference}.`;
+  return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
+}
+
+function signPayload(body, secret) {
+  return crypto.createHmac('sha256', secret).update(body).digest('hex');
+}
+
+function createNotifier({ env = process.env, logger = console, fetchImpl = globalThis.fetch } = {}) {
+  const appsScriptUrl = env.APPS_SCRIPT_WEBHOOK_URL || '';
+  const appsScriptSecret = env.APPS_SCRIPT_SHARED_SECRET || '';
+  const sheetsEnabled = Boolean(appsScriptUrl && appsScriptSecret);
+
+  async function sendToLeadRegister(event, lead) {
+    // Apps Script web apps cannot read request headers, so the HMAC signature travels in the body.
+    const payload = JSON.stringify({ event, sentAt: new Date().toISOString(), row: toLeadRegisterRow(lead) });
+    const response = await fetchImpl(appsScriptUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payload, signature: signPayload(payload, appsScriptSecret) }),
+    });
+    if (!response.ok) throw new Error(`Lead register responded with HTTP ${response.status}`);
+  }
+
+  return {
+    status() {
+      return { googleSheets: sheetsEnabled, email: false, whatsapp: false };
+    },
+
+    /** Called after a lead is saved. Failures are logged and never undo the saved lead. */
+    async leadEvent(event, lead) {
+      if (sheetsEnabled) {
+        try {
+          await sendToLeadRegister(event, lead);
+        } catch (error) {
+          logger.error(`[integrations] lead register update failed for ${lead.id}: ${error.message}`);
+        }
+      }
+      // Email: wire buildInternalNotification / buildCustomerAcknowledgement to the business mail
+      // provider once the official address and credentials exist.
+      // WhatsApp: automated messages require an approved WhatsApp Business integration and the
+      // customer's whatsappConsent. Until then, staff follow up manually using buildWhatsAppLink.
+    },
+  };
+}
+
+module.exports = {
+  toLeadRegisterRow,
+  buildInternalNotification,
+  buildCustomerAcknowledgement,
+  buildWhatsAppLink,
+  signPayload,
+  createNotifier,
+};
