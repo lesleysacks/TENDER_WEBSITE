@@ -1,100 +1,22 @@
 'use strict';
 
 /*
- * Future integration points: Website → Backend → Google Apps Script → Google Sheets lead register
- * → business email / WhatsApp follow-up.
+ * Integrations for the Node server: Website → this server → Google Apps Script → Google Sheets lead
+ * register + business email. (The site can also talk to the Apps Script directly; see apps-script/.)
+ * Row layout and email texts live in shared/lead-messages.js so both paths stay identical.
  *
- * Nothing here is live until the business supplies credentials through environment variables.
- * Without them every channel reports "not configured" and the lead is only stored by this server.
+ * Nothing here is live until APPS_SCRIPT_WEBHOOK_URL and APPS_SCRIPT_SHARED_SECRET are set.
  */
 
 const crypto = require('node:crypto');
-const { STATUS_LABELS, getLeadType } = require('../../shared/lead-schema');
-const { formatRand } = require('../../shared/pricing');
-
-const yesNo = (value) => (value ? 'Yes' : 'No');
-
-/** Official business contact address. Override with the BUSINESS_EMAIL environment variable. */
-const DEFAULT_BUSINESS_EMAIL = 'Nextgeneration.ai7.0@gmail.com';
-
-/** One row of the Google Sheets lead register, in the column order agreed with the business. */
-function toLeadRegisterRow(lead) {
-  const req = lead.requirements || {};
-  const contact = lead.contact || {};
-  return {
-    'Lead ID': lead.id,
-    Date: lead.createdAt,
-    Name: contact.fullName || '',
-    Company: contact.company || '',
-    Location: contact.location || '',
-    Email: contact.email || '',
-    Phone: contact.phone || '',
-    Quantity: req.quantity,
-    'Unit Price': formatRand(req.unitPriceCents),
-    Total: formatRand(req.totalCents),
-    'Price Wanted': req.targetUnitPriceCents ? formatRand(req.targetUnitPriceCents) : '',
-    'Pack Price Wanted': req.targetPackPriceCents ? formatRand(req.targetPackPriceCents) : '',
-    'Estimated Selling Price': req.targetTotalCents ? formatRand(req.targetTotalCents) : '',
-    'Stickers/Decals': yesNo(req.packaging),
-    Delivery: req.delivery ? 'Deliver' : 'Collect',
-    'Delivery Point': req.deliveryPoint || '',
-    'Lead Type': getLeadType(req.leadType)?.registerLabel || '',
-    Status: STATUS_LABELS[lead.status] || lead.status,
-  };
-}
-
-function describeRequirements(lead) {
-  const req = lead.requirements;
-  return [
-    `Quantity: ${req.quantity.toLocaleString('en-ZA')} pads (${(req.packs ?? Math.floor(req.quantity / 10)).toLocaleString('en-ZA')} packs of 10)`,
-    `Price wanted per pad: ${formatRand(req.targetUnitPriceCents)}`,
-    `Price wanted per pack of 10: ${formatRand(req.targetPackPriceCents)}`,
-    `Estimated selling price: ${formatRand(req.targetTotalCents)}`,
-    `Our indicative price per pad: ${formatRand(req.unitPriceCents)} (total ${formatRand(req.totalCents)})`,
-    `Stickers/decals on packs: ${yesNo(req.packaging)}`,
-    `Delivery: ${req.delivery ? `deliver to ${req.deliveryPoint || '(delivery point not given yet)'}` : 'customer will collect'}`,
-    `Requirement: ${getLeadType(req.leadType)?.label || ''}`,
-  ].join('\n');
-}
-
-/** Internal notification for the sales team (sent once an email transport is configured). */
-function buildInternalNotification(lead) {
-  const c = lead.contact;
-  return {
-    subject: `New website enquiry ${lead.id}`,
-    text: [
-      `Lead reference: ${lead.id}`,
-      `Submitted: ${lead.submittedAt}`,
-      '',
-      `Name: ${c.fullName}`,
-      `Company: ${c.company || '-'}`,
-      `Location: ${c.location}`,
-      `Email: ${c.email}`,
-      `Phone: ${c.phone || '-'}`,
-      `WhatsApp follow-up permitted: ${yesNo(lead.consent?.whatsappFollowUp)}`,
-      '',
-      describeRequirements(lead),
-    ].join('\n'),
-  };
-}
-
-/** Acknowledgement for the customer. It must not read as an order or booking confirmation. */
-function buildCustomerAcknowledgement(lead, businessEmail = DEFAULT_BUSINESS_EMAIL) {
-  return {
-    subject: `PureLine Hygiene enquiry ${lead.id} received`,
-    text: [
-      `Dear ${lead.contact.fullName},`,
-      '',
-      'Thank you for choosing PureLine Hygiene. Your enquiry has been received and will be reviewed by our team.',
-      `Your reference number is ${lead.id}.`,
-      '',
-      'This is not a confirmed order or booking. We will contact you regarding your requirements.',
-      `Questions? Reply to this email or write to ${businessEmail}, quoting ${lead.id}.`,
-      '',
-      describeRequirements(lead),
-    ].join('\n'),
-  };
-}
+const {
+  DEFAULT_BUSINESS_EMAIL,
+  REGISTER_COLUMNS,
+  toLeadRegisterRow,
+  describeRequirements,
+  buildInternalNotification,
+  buildCustomerAcknowledgement,
+} = require('../../shared/lead-messages');
 
 /** wa.me link with the reference prefilled. Only for the official WhatsApp Business number. */
 function buildWhatsAppLink(businessNumber, reference) {
@@ -174,4 +96,6 @@ module.exports = {
   signPayload,
   createNotifier,
   DEFAULT_BUSINESS_EMAIL,
+  REGISTER_COLUMNS,
+  describeRequirements,
 };

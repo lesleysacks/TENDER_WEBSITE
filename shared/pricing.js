@@ -62,7 +62,7 @@
 
   /** "0.35", "R0,35", "35c" style input -> 35 (cents), or null. */
   function parseRandInput(text) {
-    const cleaned = String(text ?? '').replace(/[^\d.,]/g, '').replace(',', '.');
+    const cleaned = String(text == null ? '' : text).replace(/[^\d.,]/g, '').replace(',', '.');
     if (!cleaned) return null;
     const value = Number(cleaned);
     if (!Number.isFinite(value)) return null;

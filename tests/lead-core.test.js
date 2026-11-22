@@ -8,7 +8,7 @@ const path = require('node:path');
 const S = require('../shared/lead-schema');
 const ids = require('../server/lead-id');
 const { FileLeadStore } = require('../server/lead-store');
-const { toLeadRegisterRow, buildCustomerAcknowledgement, buildInternalNotification, buildWhatsAppLink, signPayload } = require('../server/integrations');
+const { toLeadRegisterRow, REGISTER_COLUMNS, buildCustomerAcknowledgement, buildInternalNotification, buildWhatsAppLink, signPayload } = require('../server/integrations');
 
 test('lead references look like PLH-8F3A92C7 and are unique', () => {
   const seen = new Set();
@@ -108,16 +108,23 @@ test('lead register row matches the Google Sheets columns', () => {
     contact: { fullName: 'A Buyer', company: 'Org', location: 'Durban', email: 'a@b.co.za', phone: '' },
   };
   const row = toLeadRegisterRow(lead);
-  assert.deepEqual(Object.keys(row), ['Lead ID', 'Date', 'Name', 'Company', 'Location', 'Email', 'Phone', 'Quantity', 'Unit Price', 'Total', 'Price Wanted', 'Pack Price Wanted', 'Estimated Selling Price', 'Stickers/Decals', 'Delivery', 'Delivery Point', 'Lead Type', 'Status']);
-  assert.equal(row['Price Wanted'], 'R0.25');
-  assert.equal(row['Pack Price Wanted'], 'R2.50');
-  assert.equal(row['Estimated Selling Price'], 'R5,000.00');
-  assert.equal(row['Unit Price'], 'R0.30');
-  assert.equal(row.Total, 'R6,000.00');
+  assert.deepEqual(Object.keys(row), REGISTER_COLUMNS);
+  assert.deepEqual(REGISTER_COLUMNS.slice(0, 4), ['Lead ID', 'Status', 'Submitted', 'Created']);
+  // Money is in rands as numbers so the sheet can total it
+  assert.equal(row['Price wanted /pad'], 0.25);
+  assert.equal(row['Price wanted /pack'], 2.5);
+  assert.equal(row['Customer total'], 5000);
+  assert.equal(row['Our price /pad'], 0.3);
+  assert.equal(row['Our total'], 6000);
+  assert.equal(row['Quantity (pads)'], 20000);
+  assert.equal(row['Packs of 10'], 2000);
+  assert.equal(row['Single pads'], 0);
   assert.equal(row['Lead Type'], 'Tender');
   assert.equal(row.Status, 'Submitted');
+  assert.equal(row['Stickers/Decals'], 'Yes');
   assert.equal(row.Delivery, 'Collect');
-  assert.equal(row['Delivery Point'], '');
+  assert.equal(row['Delivery point'], '');
+  assert.equal(row['Staff notes'], '');
   assert.match(buildCustomerAcknowledgement(lead).text, /not a confirmed order or booking/);
   // WhatsApp consent is stored on lead.consent, not lead.contact
   const optedIn = { ...lead, submittedAt: lead.createdAt, consent: { whatsappFollowUp: true } };

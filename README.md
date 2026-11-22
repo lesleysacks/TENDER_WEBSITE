@@ -9,14 +9,15 @@ Requires Node.js 20 or later.
 
 ```bash
 npm start          # http://127.0.0.1:8000
-npm test           # unit + API tests
+npm test           # unit, API and Apps Script tests
+npm run build:apps-script   # rebuild dist/apps-script/Code.gs after changing shared/ or apps-script/
 npm run test:e2e   # headless Chrome/Edge journey test + screenshots in tests/e2e/output/
 ```
 
-The site can no longer be hosted as static files only: lead capture needs the Node server
-(any host that runs Node, behind HTTPS, with a persistent disk). A static host such as Vercel shows the
-pages but cannot save enquiries. **See [docs/DEPLOY.md](docs/DEPLOY.md)** (Render Blueprint in `render.yaml`,
-or a VPS with `deploy/pureline.service` + Cloudflare Tunnel).
+Lead capture needs a backend. **Recommended:** host the pages on Vercel (static) and save enquiries with the
+Google Apps Script in `dist/apps-script/Code.gs` (free; leads land in a Google Sheet). **Alternative:** run the
+Node server (`npm start`) on a host with a persistent disk (`render.yaml`, or `deploy/pureline.service` +
+Cloudflare Tunnel). **See [docs/DEPLOY.md](docs/DEPLOY.md).**
 
 ## Structure
 
@@ -119,10 +120,14 @@ npm run leads -- delete PLH-8F3A92C7  # POPIA deletion request
 
 Website → backend → Google Apps Script → Google Sheets lead register + business email (live once the script is deployed) → WhatsApp (future).
 
-- `server/integrations/index.js` builds the lead-register row (Lead ID … Status), the internal
-  notification, the customer acknowledgement and the WhatsApp link with the reference prefilled.
+- **Recommended backend: Google Apps Script.** `dist/apps-script/Code.gs` (built from `apps-script/Backend.js`
+  and `shared/*` with `npm run build:apps-script`) saves leads to a Google Sheet, emails the team and the
+  customer, and adds quotation and email-reply tools for staff. Set `leadsEndpoint` in `js/site-config.js`
+  to its `/exec` URL. See [docs/DEPLOY.md](docs/DEPLOY.md).
+- `shared/lead-messages.js` defines the Leads columns (every calculator answer) and the email texts, shared by
+  the Apps Script and the Node server's `server/integrations/index.js`.
 - Set `APPS_SCRIPT_WEBHOOK_URL` and `APPS_SCRIPT_SHARED_SECRET` to send HMAC-signed rows to the Sheet.
-  `server/integrations/google-apps-script/LeadRegister.gs` is the Apps Script template (upsert by Lead ID).
+  The same `Code.gs` accepts these signed rows (upsert by Lead ID).
 - **Email:** when an enquiry is submitted, the Apps Script also emails the internal notification to
   `BUSINESS_EMAIL` (default `Nextgeneration.ai7.0@gmail.com`) and an acknowledgement to the customer, sent from the Google account
   that owns the script. No mail-server credentials are stored on the website server. Email is live as soon

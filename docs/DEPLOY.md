@@ -1,20 +1,89 @@
 # Deploying the website with a working enquiry backend
 
-## Why the current Vercel site cannot save enquiries
+## Recommended: Vercel + Google Apps Script (free)
 
-`https://pureline-sable.vercel.app` serves the HTML, CSS and JavaScript files only. "Save and continue" and
-"Submit My Enquiry" call `/api/leads`, which is answered by the Node server (`npm start`, `server/index.js`).
-Vercel does not run that server, so every enquiry fails there with "We could not save your enquiry right now".
+The website stays on Vercel. Enquiries go straight from the page to a **Google Apps Script web app**
+attached to a Google Sheet in your Google Drive. The script:
 
-The server also stores leads in a file (`LEADS_FILE`). The host therefore needs:
+- saves each draft and submitted enquiry as a row in the **Leads** tab, with every calculator answer;
+- emails the team (the *Notification email* on the Settings tab) and sends the customer an acknowledgement;
+- adds a **PureLine** menu to the Sheet: *Create quotation for selected lead* (fills the quotation template
+  and saves it in `Quotes/`) and *Draft email reply* (creates a Gmail draft from 7 templates; nothing is
+  sent automatically);
+- deletes drafts nobody submitted after 30 days.
+
+The script is **`dist/apps-script/Code.gs`**, built from `apps-script/Backend.js` plus the shared pricing and
+validation rules (`npm run build:apps-script`). The tests check that it is up to date.
+
+### Install (about 10 minutes)
+
+Use the Google account that should own the leads. While testing that is your personal account; later
+it is the business account. The account needs free Google storage: Sheets and Docs count towards the
+15 GB, and a full account also stops receiving email.
+
+1. In Google Drive create a Google Sheet (any name, e.g. *PureLine Leads*), then open
+   **Extensions → Apps Script**.
+2. Delete the sample code, paste the whole of `dist/apps-script/Code.gs`, and click **Save**.
+3. In the function list choose **`setup`** and click **Run**. Approve the permissions (Sheets, Drive,
+   Docs, Gmail and email sending). Setup builds:
+   - a **PureLine Hygiene** folder with the Sheet in it, plus `Templates/` (Quotation template, Email reply
+     templates), `Quotes/` and a **START HERE – admin links** document;
+   - the Sheet tabs: **Dashboard** (quick links, counts, totals, latest enquiries), **Leads**, **Settings**,
+     **How to use**.
+4. On the **Settings** tab, check the *Notification email* and fill in the company and bank details for
+   quotations.
+5. **Deploy → New deployment →** type **Web app**. Set *Execute as*: **Me**, *Who has access*: **Anyone**.
+   Click **Deploy**, then copy the **Web app URL** (it ends in `/exec`).
+6. Put that URL in `js/site-config.js` as `leadsEndpoint`, commit and push. Vercel redeploys the preview.
+7. Run the test checklist in the START HERE document. Then merge to `main`.
+
+**Changing the script later:** paste the new `Code.gs`, then use **Deploy → Manage deployments → Edit
+(pencil) → Version: New version → Deploy**. That keeps the same `/exec` URL.
+
+**Moving to the business account:** repeat the install signed in as that account and replace
+`leadsEndpoint` with its new URL. Alternatively, keep the test deployment and change *Notification
+email* on the Settings tab.
+
+### Limits and safety
+
+- Each save takes 1–3 seconds. The page shows "Saving your changes…" while it waits.
+- A free Gmail account can send about **100 emails a day**, and each enquiry sends 2, so the limit is
+  roughly 50 enquiries a day. A Google Workspace account allows far more.
+- Spam protection:
+  - a hidden honeypot field;
+  - site-wide caps of 300 drafts and 150 submissions per hour;
+  - prices recalculated on the server;
+  - random references, and edit tokens stored only as hashes.
+
+  Apps Script can't see visitor IP addresses, so there are no per-visitor limits. If spam becomes a problem,
+  add Cloudflare Turnstile: put the site key on the Settings tab and the secret in **Project Settings →
+  Script properties** as `TURNSTILE_SECRET`.
+- `vercel.json` sends the security headers: a CSP that allows only this site and `script.google.com`.
+  `.vercelignore` keeps `server/`, `tests/`, `docs/`, `apps-script/` and `dist/` out of the public site.
+
+### Try it locally without Google
+
+```bash
+npm run build:apps-script
+node tests/support/apps-script-standin.js 8124
+```
+
+Then set `leadsEndpoint: 'http://127.0.0.1:8124/exec'` in `js/site-config.js`, run `npm start`, and the
+page saves to an in-memory stand-in of the Sheet. Revert `leadsEndpoint` before committing.
+
+---
+
+# Alternative: run the Node server
+
+The Node server (`npm start`) serves the pages and its own `/api/leads` and stores leads in a file.
+Choose this instead of Apps Script if you need per-visitor rate limits or faster saves. It needs:
 
 1. a long-running Node.js 20+ process (not serverless functions), and
 2. a **persistent disk**, so leads survive restarts and redeploys.
 
-Both options below meet these requirements. One process serves the pages and the API on the same domain,
-so no cross-origin set-up is needed.
+Leave `leadsEndpoint` empty in `js/site-config.js` so the page uses the server's `/api`.
 
-| | Option A: Render (recommended to start) | Option B: VPS + Cloudflare Tunnel |
+| | Option A: Render | Option B: VPS + Cloudflare Tunnel |
 |---|---|---|
 | Effort | Low: connect GitHub, click deploy | Medium: basic Linux admin |
 | Deploys | Automatic on every push to the main branch | `git pull` + restart (or a script) |
@@ -123,7 +192,7 @@ Both are sent by the Google Apps Script from the Gmail account that owns it, so 
 stored on the server.
 
 1. Sign in to Google as **Nextgeneration.ai7.0@gmail.com**. Create a Google Sheet with a tab named `Leads`.
-2. Extensions → Apps Script. Paste `server/integrations/google-apps-script/LeadRegister.gs`.
+2. Extensions → Apps Script. Paste `dist/apps-script/Code.gs`, then run `setup` once.
 3. Project Settings → Script properties: add `SHARED_SECRET` with a long random value
    (for example the output of `openssl rand -hex 32`).
 4. Deploy → New deployment → Web app, execute as **Me**, access **Anyone**. Approve the permissions

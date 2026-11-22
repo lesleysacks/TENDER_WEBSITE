@@ -9,6 +9,10 @@ window.PURELINE_CONFIG = Object.freeze({
     ? `${window.location.protocol}//${window.location.hostname}:8000/api`
     : '/api',
 
+  // Google Apps Script web app that saves enquiries (its /exec URL from Deploy → Web app).
+  // Leave empty to use the Node server's /api instead (npm start). See docs/DEPLOY.md.
+  leadsEndpoint: '',
+
   // Official business channels only (no personal numbers). Example WhatsApp format: '27XXXXXXXXX'.
   businessEmail: 'Nextgeneration.ai7.0@gmail.com',
   whatsappNumber: '',

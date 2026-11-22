@@ -14,7 +14,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { FileLeadStore } = require('./lead-store');
 const { LEAD_STATUSES } = require('../shared/lead-schema');
-const { toLeadRegisterRow } = require('./integrations');
+const { toLeadRegisterRow, REGISTER_COLUMNS } = require('./integrations');
 
 const leadsFile = process.env.LEADS_FILE || path.join(__dirname, '..', 'data', 'leads.json');
 
@@ -36,7 +36,7 @@ async function main() {
         .filter((lead) => !status || lead.status === status)
         .map((lead) => {
           const row = toLeadRegisterRow(lead);
-          return { 'Lead ID': row['Lead ID'], Date: row.Date, Status: row.Status, Name: row.Name, Quantity: row.Quantity, Total: row.Total, 'Lead Type': row['Lead Type'] };
+          return { 'Lead ID': row['Lead ID'], Created: row.Created, Status: row.Status, Name: row.Name, Pads: row['Quantity (pads)'], 'Customer total': row['Customer total'], 'Lead Type': row['Lead Type'] };
         });
       console.table(rows);
       break;
@@ -65,7 +65,7 @@ async function main() {
     case 'export': {
       const output = args[0] || 'leads.csv';
       const rows = leads.map(toLeadRegisterRow);
-      const headers = Object.keys(toLeadRegisterRow({ requirements: {} }));
+      const headers = REGISTER_COLUMNS;
       const csv = [headers, ...rows.map((row) => headers.map((h) => row[h]))]
         .map((line) => line.map(csvCell).join(','))
         .join('\n');

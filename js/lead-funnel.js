@@ -13,6 +13,8 @@
   const S = window.PureLineLeadSchema;
   const config = window.PURELINE_CONFIG || {};
   const API = config.apiBase || '/api';
+  // When set, enquiries go straight to the Google Apps Script web app instead of the Node server.
+  const APPS_SCRIPT = config.leadsEndpoint || '';
   const SESSION_KEY = 'pureline-enquiry';
 
   const $ = (selector, scope = document) => scope.querySelector(selector);
@@ -68,9 +70,7 @@
 
   async function initTurnstile() {
     try {
-      const response = await fetch(`${API}/config`);
-      if (!response.ok) return;
-      const { turnstileSiteKey } = await response.json();
+      const { turnstileSiteKey } = await api('GET', '/config');
       if (!turnstileSiteKey) return;
       turnstile.enabled = true;
       await loadScript('https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit');
@@ -117,7 +117,53 @@
 
   // ---------- API ----------
 
+  /**
+   * Google Apps Script cannot answer CORS preflight requests or read custom headers, so every call
+   * is a "simple" text/plain POST carrying an action, the reference and the edit token. Apps Script
+   * always replies HTTP 200; the real status is in the JSON body.
+   */
+  function appsScriptRequest(method, path, body) {
+    const [, reference, submit] = path.match(/^\/leads\/([^/]+)(\/submit)?$/) || [];
+    let action;
+    if (path === '/config') action = 'config';
+    else if (path === '/leads' && method === 'POST') action = 'create';
+    else if (submit) action = 'submit';
+    else if (method === 'PATCH') action = 'update';
+    else action = 'get';
+    const payload = { action, ...(body || {}) };
+    if (reference) payload.ref = reference;
+    if (session && reference) payload.token = session.token;
+    return fetch(APPS_SCRIPT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+      redirect: 'follow',
+    }).then(async (response) => {
+      const data = await response.json().catch(() => ({}));
+      const status = response.ok && data && typeof data.status === 'number' ? data.status : response.ok ? 200 : response.status;
+      return { ok: status < 400, status, data };
+    });
+  }
+
   async function api(method, path, body) {
+    if (APPS_SCRIPT) {
+      let result;
+      try {
+        result = await appsScriptRequest(method, path, body);
+      } catch {
+        throw Object.assign(new Error('We could not reach our server. Your selections are still here — please try again.'), { code: 'network' });
+      }
+      if (!result.ok) {
+        const data = result.data || {};
+        throw Object.assign(new Error(data.message || 'Something went wrong. Please try again.'), {
+          code: data.error || 'http',
+          status: result.status,
+          errors: data.errors || {},
+        });
+      }
+      return result.data;
+    }
+
     let response;
     try {
       response = await fetch(`${API}${path}`, {
@@ -274,7 +320,8 @@
     setSyncStatus('saving');
     pendingSync = true;
     clearTimeout(syncTimer);
-    syncTimer = setTimeout(syncNow, 700);
+    // Apps Script answers in 1–3 seconds, so wait a little longer before saving each change.
+    syncTimer = setTimeout(syncNow, APPS_SCRIPT ? 1500 : 700);
   }
 
   function syncNow() {
