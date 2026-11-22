@@ -139,27 +139,41 @@ section[tabindex="-1"]:focus { outline: none; }
 .hero-note { max-width: 34rem; margin-top: 0.8rem; color: #9fb1ad; font-size: 0.82rem; }
 
 /* Qualifying question in the hero ("Which describes you?") */
-.hero-qualify { max-width: 40rem; margin: 1.4rem 0 0; padding: 0; border: 0; min-width: 0; }
-.hero-qualify legend { padding: 0; margin-bottom: 0.6rem; color: #fff; font-size: 1rem; font-weight: 700; }
-.hero-qualify legend::after { content: " (choose one)"; color: var(--aqua); font-weight: 500; font-size: 0.85rem; }
+.hero-qualify {
+  max-width: 44rem; margin: 1.6rem 0 0; padding: 1rem 1.1rem 1.1rem; min-width: 0;
+  border: 0; border-top: 5px solid var(--amber); border-radius: 6px;
+  background: var(--white); color: var(--ink); box-shadow: 0 14px 34px rgb(0 0 0 / 35%);
+}
+.hero-qualify legend { display: contents; }
+.hero-step {
+  display: inline-block; margin-bottom: 0.35rem; padding: 0.15rem 0.55rem; border-radius: 999px;
+  background: var(--amber); color: var(--ink); font-family: var(--mono); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.hero-question { display: block; color: var(--ink); font-size: clamp(1.35rem, 2.4vw, 1.7rem); font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
+.hero-choose { display: block; margin: 0.2rem 0 0.8rem; color: var(--teal-dark); font-size: 0.9rem; font-weight: 600; }
 .hero-options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; }
 .hero-option {
-  display: flex; align-items: center; gap: 0.6rem; min-height: 52px;
-  padding: 0.55rem 0.75rem; border: 2px solid var(--aqua); border-radius: 4px; background: rgb(255 255 255 / 10%);
-  color: #fff; font-size: 0.9rem; font-weight: 600; line-height: 1.25; cursor: pointer;
-  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+  display: flex; align-items: center; gap: 0.65rem; min-height: 56px;
+  padding: 0.6rem 0.75rem; border: 2px solid var(--teal); border-radius: 6px; background: #fff;
+  color: var(--ink); font-size: 0.95rem; font-weight: 700; line-height: 1.25; cursor: pointer;
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease, color 160ms ease;
 }
-.hero-option:hover { background: rgb(159 216 207 / 22%); box-shadow: 0 0 0 3px rgb(159 216 207 / 25%); }
-.hero-option:has(input:checked) { border-color: var(--amber); background: var(--teal); box-shadow: 0 0 0 3px rgb(217 164 65 / 45%); }
-/* A large, high-contrast radio circle that is easy to spot on the dark hero */
+.hero-option:hover { background: #eef6f3; box-shadow: 0 0 0 3px rgb(47 111 104 / 25%); }
+.hero-option:has(input:checked) { border-color: var(--teal-dark); background: var(--teal); color: #fff; box-shadow: 0 0 0 3px var(--amber); }
+.hero-option:has(input:focus-visible) { outline: 3px solid var(--amber); outline-offset: 2px; }
+/* Large custom radio circles */
 .hero-option input {
   appearance: none; -webkit-appearance: none; flex: none; display: grid; place-content: center;
-  width: 1.35rem; height: 1.35rem; margin: 0; border: 2px solid #fff; border-radius: 50%; background: rgb(20 35 42 / 60%); cursor: pointer;
+  width: 1.5rem; height: 1.5rem; margin: 0; border: 2.5px solid var(--teal); border-radius: 50%; background: #fff; cursor: pointer;
 }
-.hero-option input::before { content: ""; width: 0.65rem; height: 0.65rem; border-radius: 50%; background: var(--amber); transform: scale(0); transition: transform 120ms ease; }
-.hero-option input:checked { border-color: var(--amber); background: #fff; }
+.hero-option input::before { content: ""; width: 0.75rem; height: 0.75rem; border-radius: 50%; background: var(--amber); transform: scale(0); transition: transform 120ms ease; }
+.hero-option input:checked { border-color: var(--amber); }
 .hero-option input:checked::before { transform: scale(1); }
-.hero-option input:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+.hero-option input:focus-visible { outline: none; }
+/* Shown when someone saves without choosing */
+.hero-qualify.needs-answer { box-shadow: 0 0 0 4px var(--error), 0 14px 34px rgb(0 0 0 / 35%); animation: nudge 420ms ease 2; }
+.hero-qualify.needs-answer .hero-choose { color: var(--error); }
+@keyframes nudge { 0%, 100% { translate: 0 0; } 25% { translate: -6px 0; } 75% { translate: 6px 0; } }
 
 /* "We Specialise In" — one row directly under the hero */
 .credentials { background: var(--white); border-bottom: 1px solid var(--line); }
@@ -340,6 +354,22 @@ section[tabindex="-1"]:focus { outline: none; }
 .check-option:hover, .radio-option:hover { border-color: var(--teal); }
 .check-option:has(input:checked), .radio-option:has(input:checked) { border-color: var(--teal); background: #eef6f3; }
 .check-option input, .radio-option input { flex: none; width: 1.1rem; height: 1.1rem; margin: 0.2rem 0 0; accent-color: var(--teal); }
+/* Large, high-contrast tick boxes */
+.check-option { border-width: 2px; border-color: var(--teal); border-radius: 6px; font-weight: 600; }
+.check-option input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none; display: grid; place-content: center;
+  width: 1.5rem; height: 1.5rem; margin: 0; border: 2.5px solid var(--teal); border-radius: 5px; background: #fff; cursor: pointer;
+}
+.check-option input[type="checkbox"]::before {
+  content: ""; width: 0.8rem; height: 0.45rem; margin-top: -0.2rem;
+  border-left: 3px solid #fff; border-bottom: 3px solid #fff; transform: rotate(-45deg) scale(0); transition: transform 120ms ease;
+}
+.check-option input[type="checkbox"]:checked { background: var(--teal); border-color: var(--teal-dark); }
+.check-option input[type="checkbox"]:checked::before { transform: rotate(-45deg) scale(1); }
+.check-option:has(input:checked) { background: #e3f1ed; box-shadow: 0 0 0 2px var(--teal); }
+.check-option:has(input:focus-visible) { outline: 3px solid var(--amber); outline-offset: 2px; }
+.check-option input[type="checkbox"]:focus-visible { outline: none; }
+.check-option:has(input:disabled) { opacity: 0.55; cursor: not-allowed; }
 .qualify { margin: 0; padding: 0; border: 0; min-width: 0; }
 .qualify legend { padding: 0; }
 .stage1-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin-top: 1rem; }
@@ -544,8 +574,8 @@ section[tabindex="-1"]:focus { outline: none; }
 @media (forced-colors: active) {
   .btn, .check-option, .radio-option, .qty-step, .gallery-item { border: 1px solid ButtonText; }
   .progress-fill { background: Highlight; }
-  .hero-option input { appearance: auto; -webkit-appearance: auto; }
-  .hero-option input::before { display: none; }
+  .hero-option input, .check-option input[type="checkbox"] { appearance: auto; -webkit-appearance: auto; }
+  .hero-option input::before, .check-option input[type="checkbox"]::before { display: none; }
 }
 
 @media print {

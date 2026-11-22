@@ -122,6 +122,7 @@ class FakeSheet {
   deleteRow(row) { this.raw.splice(row - 1, 1); return this; }
   clear() { this.raw = []; return this; }
   getFilter() { return this.filter; }
+  getProtections() { return []; }
   getActiveRange() { return { getRow: () => this.activeRow }; }
   activate() { this.spreadsheet.active = this; return this; }
   /** Test helper: the row as an object keyed by the header row. */
@@ -232,6 +233,8 @@ function loadAppsScript({ ownerEmail = 'owner@example.com', code = fs.readFileSy
   const alerts = [];
   const triggers = [];
   const enumProxy = new Proxy({}, { get: (t, p) => String(p) });
+  // Switches tests can flip: a busy lock and the remaining Gmail quota.
+  const state = { lockBusy: false, mailQuota: 100 };
 
   const sandbox = {
     console: { log() {}, error() {}, warn() {} },
@@ -240,9 +243,10 @@ function loadAppsScript({ ownerEmail = 'owner@example.com', code = fs.readFileSy
       getActiveSheet: () => spreadsheet.active,
       newDataValidation: () => chainable({ build: () => ({}) }),
       newConditionalFormatRule: () => chainable({ build: () => ({}) }),
+      ProtectionType: { RANGE: 'RANGE', SHEET: 'SHEET' },
       getUi: () => chainable({ alert: (...args) => { alerts.push(args); }, ButtonSet: { OK: 'OK' } }),
     },
-    LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
+    LockService: { getScriptLock: () => ({ waitLock() {}, tryLock: () => !state.lockBusy, releaseLock() {} }) },
     CacheService: {
       getScriptCache: () => ({
         get: (k) => (cache.has(k) ? cache.get(k) : null),
@@ -263,7 +267,15 @@ function loadAppsScript({ ownerEmail = 'owner@example.com', code = fs.readFileSy
       computeHmacSha256Signature: (text, secret) => [...crypto.createHmac('sha256', secret).update(text).digest()].map((b) => (b > 127 ? b - 256 : b)),
       formatDate: (date) => date.toISOString().slice(0, 10),
     },
-    MailApp: { sendEmail: (message) => { sent.push(message); }, getRemainingDailyQuota: () => 100 },
+    MailApp: {
+      sendEmail: (message) => {
+        // Like Gmail: once the daily quota is used up, sending throws.
+        if (state.mailQuota <= 0) throw new Error('Service invoked too many times for one day: email.');
+        sent.push(message);
+        state.mailQuota -= 1;
+      },
+      getRemainingDailyQuota: () => state.mailQuota,
+    },
     GmailApp: { createDraft: (to, subject, body, options) => { drafts.push({ to, subject, body, options }); }, getAliases: () => [] },
     Session: { getEffectiveUser: () => ({ getEmail: () => ownerEmail }) },
     ContentService: {
@@ -297,7 +309,7 @@ function loadAppsScript({ ownerEmail = 'owner@example.com', code = fs.readFileSy
   /** Calls doPost like the web app would and returns the parsed JSON reply. */
   const post = (body) => JSON.parse(sandbox.doPost({ postData: { contents: typeof body === 'string' ? body : JSON.stringify(body) } }).getContent());
 
-  return { gas: sandbox, post, spreadsheet, docs, drive, cache, properties, sent, drafts, alerts, triggers };
+  return { gas: sandbox, post, spreadsheet, docs, drive, cache, properties, sent, drafts, alerts, triggers, state };
 }
 
 module.exports = { loadAppsScript, CODE_PATH };

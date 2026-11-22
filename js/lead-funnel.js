@@ -131,6 +131,8 @@
     else if (method === 'PATCH') action = 'update';
     else action = 'get';
     const payload = { action, ...(body || {}) };
+    // The backend rejects drafts saved within 3 seconds of the page opening (a bot signal).
+    if (action === 'create') payload.elapsedMs = Math.round(performance.now());
     if (reference) payload.ref = reference;
     if (session && reference) payload.token = session.token;
     return fetch(APPS_SCRIPT, {
@@ -145,8 +147,15 @@
     });
   }
 
+  /** Real people never hit the backend's "too fast" checks; this pause makes sure of it. */
+  const MIN_MS = 3200;
+  const waitUntil = (ms) => new Promise((resolve) => setTimeout(resolve, Math.max(0, ms)));
+  let draftCreatedAt = 0;
+
   async function api(method, path, body) {
     if (APPS_SCRIPT) {
+      if (method === 'POST' && path === '/leads') await waitUntil(MIN_MS - performance.now());
+      if (/\/submit$/.test(path) && draftCreatedAt) await waitUntil(draftCreatedAt + MIN_MS - Date.now());
       let result;
       try {
         result = await appsScriptRequest(method, path, body);
@@ -255,7 +264,13 @@
     if (!check.ok) {
       if (check.errors.quantity) return showStage1Error(check.errors.quantity, $('[data-qty-input]'));
       if (check.errors.leadType) {
-        return showStage1Error('Choose what best describes you (at the top of the page) before saving.', els.leadTypes[0]);
+        const card = document.getElementById('lead-type');
+        if (card) {
+          card.classList.remove('needs-answer');
+          void card.offsetWidth; // restart the nudge
+          card.classList.add('needs-answer');
+        }
+        return showStage1Error('Choose what best describes you in Step 1 at the top of the page, then save again.', els.leadTypes[0]);
       }
       if (check.errors.deliveryPoint) return showStage1Error(check.errors.deliveryPoint, $('[data-req="deliveryPoint"]'));
       return showStage1Error('Please check your selections.');
@@ -285,6 +300,7 @@
 
   function enterDraftStage(lead) {
     stage = 'draft';
+    draftCreatedAt = Date.parse(lead.createdAt) || Date.now();
     setProgress(50);
     renderSummary(lead.requirements);
     setSyncStatus('saved');
@@ -491,6 +507,7 @@
   els.leadTypes.forEach((input) =>
     input.addEventListener('change', () => {
       showStage1Error('');
+      document.getElementById('lead-type')?.classList.remove('needs-answer');
       scheduleSync();
     })
   );

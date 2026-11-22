@@ -20,6 +20,10 @@ function ready(options) {
   const t = loadAppsScript({ ownerEmail: 'admin@example.com', ...options });
   t.gas.setup();
   t.leads = t.spreadsheet.getSheetByName('Leads');
+  // These lifecycle tests act like a person who took their time (tests/security.test.js covers the timing checks).
+  t.gas.LIMITS.minMsDraftToSubmit = 0;
+  const post = t.post;
+  t.post = (body) => post(body && typeof body === 'object' && body.action === 'create' && body.elapsedMs === undefined ? { ...body, elapsedMs: 20000 } : body);
   return t;
 }
 
@@ -65,7 +69,7 @@ test('setup builds the tabs, the Leads columns, settings, templates and the dail
 
 test('draft → update → submit, with prices recalculated and both emails sent once', () => {
   const t = ready();
-  const created = t.post({ action: 'create', requirements: { ...REQUIREMENTS, targetTotalCents: 1 }, idempotencyKey: 'k-1' });
+  const created = t.post({ action: 'create', requirements: { ...REQUIREMENTS, targetTotalCents: 1 }, idempotencyKey: 'key-00000001' });
   assert.equal(created.status, 200);
   assert.match(created.lead.reference, /^PLH-[0-9A-F]{8}$/);
   assert.equal(created.lead.status, 'DRAFT');
@@ -73,7 +77,7 @@ test('draft → update → submit, with prices recalculated and both emails sent
   assert.equal(t.leads.rowObject(2).Status, 'Draft');
   assert.notEqual(t.leads.rowObject(2)._tokenHash, created.editToken, 'token is stored hashed');
 
-  const again = t.post({ action: 'create', requirements: REQUIREMENTS, idempotencyKey: 'k-1' });
+  const again = t.post({ action: 'create', requirements: REQUIREMENTS, idempotencyKey: 'key-00000001' });
   assert.equal(again.lead.reference, created.lead.reference, 'a double click reuses the same draft');
   assert.equal(t.leads.getLastRow(), 2);
 
@@ -133,7 +137,7 @@ test('wrong tokens, unknown references and bad requests are refused', () => {
 test('spam protection: honeypot and hourly caps', () => {
   const t = ready();
   assert.equal(t.post({ action: 'create', requirements: REQUIREMENTS, website: 'http://spam.example' }).status, 400);
-  t.gas.CONFIG.HOURLY_DRAFT_CAP = 2;
+  t.gas.LIMITS.draftsPerHour = 2;
   assert.equal(t.post({ action: 'create', requirements: REQUIREMENTS }).status, 200);
   assert.equal(t.post({ action: 'create', requirements: REQUIREMENTS }).status, 200);
   assert.equal(t.post({ action: 'create', requirements: REQUIREMENTS }).status, 429);

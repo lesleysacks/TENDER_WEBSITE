@@ -59,6 +59,7 @@ async function main() {
     turnstile,
     trustProxy: env.TRUST_PROXY === 'cloudflare' ? 'cloudflare' : env.TRUST_PROXY === 'true',
     allowedOrigins: allowedOrigins(),
+    hsts: env.NODE_ENV === 'production',
   });
 
   const port = Number(env.PORT || 8000);

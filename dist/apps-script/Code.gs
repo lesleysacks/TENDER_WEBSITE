@@ -362,14 +362,20 @@
     ].join('\n');
   }
 
-  /** Internal notification for the sales team. */
-  function buildInternalNotification(lead) {
+  /**
+   * Internal notification for the sales team. `links` (optional) adds quick links into the lead
+   * register: { row: link to this enquiry's row, dashboard: link to the dashboard }.
+   */
+  function buildInternalNotification(lead, links) {
     const c = lead.contact;
+    const quick = links || {};
     return {
       subject: `New website enquiry ${lead.id}`,
       text: [
         `Lead reference: ${lead.id}`,
         `Submitted: ${lead.submittedAt}`,
+        ...(quick.row ? ['', `Open this enquiry in the lead register: ${quick.row}`] : []),
+        ...(quick.dashboard ? [`Dashboard: ${quick.dashboard}`] : []),
         '',
         `Name: ${c.fullName}`,
         `Company: ${c.company || '-'}`,
@@ -441,13 +447,31 @@ var CONFIG = {
   FOLDER_NAME: 'PureLine Hygiene',
   SHEETS: { dashboard: 'Dashboard', leads: 'Leads', settings: 'Settings', help: 'How to use', chartData: 'Chart data' },
   WEBSITE_URL: 'https://pureline-sable.vercel.app',
-  MAX_BODY_CHARS: 16 * 1024,
   DRAFT_RETENTION_DAYS: 30,
   IDEMPOTENCY_SECONDS: 15 * 60,
-  HOURLY_DRAFT_CAP: 300,
-  HOURLY_SUBMIT_CAP: 150,
   HISTORY_LIMIT: 50,
 };
+
+/**
+ * Abuse limits. Apps Script cannot see visitor IP addresses, so limits are site-wide or per enquiry.
+ * Counters live in CacheService (they reset when the hour or the cache entry expires).
+ */
+var LIMITS = {
+  maxBodyChars: 8 * 1024,
+  draftsPerHour: 300, // new drafts, whole site
+  submitsPerHour: 150, // submissions, whole site
+  readsPerHour: 2000, // get + update calls, whole site (protects the daily Google quotas)
+  savesPerDraft: 120, // updates to one draft
+  submitAttemptsPerLead: 10, // submit calls for one enquiry (wrong details included)
+  minMsBeforeDraft: 3000, // a person cannot fill in the calculator faster than this
+  minMsDraftToSubmit: 3000, // nor type their contact details faster than this
+  lockWaitMs: 10000,
+};
+
+/** Only these request fields are accepted; anything else is treated as tampering. */
+var ALLOWED_FIELDS = ['action', 'ref', 'token', 'requirements', 'contact', 'idempotencyKey', 'website', 'turnstileToken', 'elapsedMs'];
+var IDEMPOTENCY_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
+var TOKEN_PATTERN = /^[0-9a-f]{64}$/;
 
 // Hidden columns after the visible register columns. They hold what the website needs.
 var SYSTEM_COLUMNS = ['_tokenHash', '_updatedAt', '_consent', '_requirements', '_draftSnapshot', '_history'];
@@ -463,6 +487,7 @@ var STATUS_CODES = (function () {
 var ERROR_STATUS = {
   validation: 422, not_found: 404, conflict: 409, invalid_json: 400, payload_too_large: 413,
   rejected: 400, rate_limited: 429, verification_failed: 403, unknown_action: 400, forbidden: 403,
+  too_fast: 400, busy: 503,
 };
 
 function LeadError_(code, message, details) {
@@ -488,7 +513,7 @@ function doGet() {
 function doPost(e) {
   try {
     var raw = e && e.postData && typeof e.postData.contents === 'string' ? e.postData.contents : '';
-    if (raw.length > CONFIG.MAX_BODY_CHARS) throw LeadError_('payload_too_large', 'Request is too large.');
+    if (raw.length > LIMITS.maxBodyChars) throw LeadError_('payload_too_large', 'Request is too large.');
     var body;
     try {
       body = JSON.parse(raw || '{}');
@@ -519,11 +544,13 @@ function handleRequest_(body) {
   var action = body.action;
   if (action === 'config') return { turnstileSiteKey: turnstileSiteKey_() || null };
   if (['create', 'get', 'update', 'submit'].indexOf(action) === -1) throw LeadError_('unknown_action', 'Unknown action.');
+  checkShape_(body);
 
   var lock = LockService.getScriptLock();
-  lock.waitLock(20000);
+  if (!lock.tryLock(LIMITS.lockWaitMs)) throw LeadError_('busy', 'We are busy right now. Please try again in a moment.');
   try {
     if (action === 'create') return createDraft_(body);
+    if ((action === 'get' || action === 'update') && !underHourlyCap_('read', LIMITS.readsPerHour)) throw tooManyRequests_();
     if (action === 'get') return { lead: publicView_(authorise_(body.ref, body.token).lead) };
     if (action === 'update') return updateDraft_(body);
     return submitEnquiry_(body);
@@ -535,6 +562,32 @@ function handleRequest_(body) {
 // =====================================================================================
 // Lead lifecycle (mirrors server/lead-service.js)
 // =====================================================================================
+
+/** Rejects unexpected fields and malformed ids before anything touches the Sheet. */
+function checkShape_(body) {
+  var rejected = LeadError_('rejected', 'Unable to process this request.');
+  Object.keys(body).forEach(function (key) { if (ALLOWED_FIELDS.indexOf(key) === -1) throw rejected; });
+  if (body.idempotencyKey !== undefined && (typeof body.idempotencyKey !== 'string' || !IDEMPOTENCY_PATTERN.test(body.idempotencyKey))) throw rejected;
+  if (body.elapsedMs !== undefined && (typeof body.elapsedMs !== 'number' || !isFinite(body.elapsedMs))) throw rejected;
+  ['requirements', 'contact'].forEach(function (key) {
+    if (body[key] !== undefined && (body[key] === null || typeof body[key] !== 'object' || Array.isArray(body[key]))) throw rejected;
+  });
+  if (body.website !== undefined && typeof body.website !== 'string') throw rejected;
+  if (body.turnstileToken !== undefined && typeof body.turnstileToken !== 'string') throw rejected;
+}
+
+/** Per-enquiry counter (6 hours). Returns false once the limit is passed. */
+function underLeadCap_(kind, reference, max) {
+  var cache = CacheService.getScriptCache();
+  var key = 'lead:' + kind + ':' + reference;
+  var count = Number(cache.get(key) || 0) + 1;
+  cache.put(key, String(count), 6 * 60 * 60);
+  return count <= max;
+}
+
+function tooManyRequests_() {
+  return LeadError_('rate_limited', 'Too many requests. Please wait a few minutes and try again.');
+}
 
 function priceRequirements_(value) {
   var estimate = P.estimateSupplyCost(value.quantity);
@@ -574,11 +627,15 @@ function isSpam_(body) {
 
 function createDraft_(body) {
   if (isSpam_(body)) throw LeadError_('rejected', 'Unable to process this request.');
+  // Bots post the moment the page loads; people take a while to use the calculator.
+  if (typeof body.elapsedMs !== 'number' || body.elapsedMs < LIMITS.minMsBeforeDraft) {
+    throw LeadError_('too_fast', 'Please take a moment to check your requirements, then save again.');
+  }
   var check = S.validateRequirements(body.requirements);
   if (!check.ok) throw LeadError_('validation', 'Please check your supply requirements.', check.errors);
 
   var cache = CacheService.getScriptCache();
-  var key = typeof body.idempotencyKey === 'string' ? body.idempotencyKey.slice(0, 64) : '';
+  var key = typeof body.idempotencyKey === 'string' ? body.idempotencyKey : '';
   if (key) {
     var replay = parseJson_(cache.get('idem:' + key), null);
     if (replay) {
@@ -586,9 +643,7 @@ function createDraft_(body) {
       if (existing) return { lead: publicView_(existing.lead), editToken: replay.token, replayed: true };
     }
   }
-  if (!underHourlyCap_('create', CONFIG.HOURLY_DRAFT_CAP)) {
-    throw LeadError_('rate_limited', 'Too many requests. Please wait a few minutes and try again.');
-  }
+  if (!underHourlyCap_('create', LIMITS.draftsPerHour)) throw tooManyRequests_();
 
   var at = new Date().toISOString();
   var requirements = priceRequirements_(check.value);
@@ -613,6 +668,7 @@ function createDraft_(body) {
 
 function updateDraft_(body) {
   var found = authorise_(body.ref, body.token);
+  if (!underLeadCap_('save', found.lead.id, LIMITS.savesPerDraft)) throw tooManyRequests_();
   var check = S.validateRequirements(body.requirements);
   if (!check.ok) throw LeadError_('validation', 'Please check your supply requirements.', check.errors);
   var lead = found.lead;
@@ -628,18 +684,20 @@ function updateDraft_(body) {
 function submitEnquiry_(body) {
   var found = authorise_(body.ref, body.token);
   var lead = found.lead;
+  if (!underLeadCap_('submit', lead.id, LIMITS.submitAttemptsPerLead)) throw tooManyRequests_();
   // Repeat submissions return the same confirmation and never email twice.
   if (lead.status !== 'DRAFT') return { lead: publicView_(lead), alreadySubmitted: true };
 
   if (isSpam_(body)) throw LeadError_('rejected', 'Unable to process this request.');
+  if (Date.now() - Date.parse(lead.createdAt) < LIMITS.minMsDraftToSubmit) {
+    throw LeadError_('too_fast', 'Please check your details, then submit again.');
+  }
   if (turnstileSiteKey_() && !verifyTurnstile_(body.turnstileToken)) {
     throw LeadError_('verification_failed', 'Please complete the security check and try again.');
   }
   var check = S.validateContact(body.contact);
   if (!check.ok) throw LeadError_('validation', 'Please check your contact details.', check.errors);
-  if (!underHourlyCap_('submit', CONFIG.HOURLY_SUBMIT_CAP)) {
-    throw LeadError_('rate_limited', 'Too many requests. Please wait a few minutes and try again.');
-  }
+  if (!underHourlyCap_('submit', LIMITS.submitsPerHour)) throw tooManyRequests_();
 
   var at = new Date().toISOString();
   var value = check.value;
@@ -649,8 +707,14 @@ function submitEnquiry_(body) {
   lead.submittedAt = at;
   lead.updatedAt = at;
   pushHistory_(lead, { at: at, event: 'SUBMITTED', status: 'SUBMITTED' });
+  // Gmail allows about 100 recipients a day. When nearly used up, only the team is emailed.
+  var emails = enquiryEmails_(lead, found.row);
+  if (remainingEmailQuota_() < emails.length) {
+    emails = emails.slice(0, 1);
+    pushHistory_(lead, { at: at, event: 'CUSTOMER_EMAIL_SKIPPED', reason: 'daily email quota' });
+  }
   writeLead_(found.row, lead, found.values);
-  sendEmails_(enquiryEmails_(lead));
+  sendEmails_(emails);
   return { lead: publicView_(lead), alreadySubmitted: false };
 }
 
@@ -658,8 +722,9 @@ function submitEnquiry_(body) {
 function authorise_(reference, token) {
   var notFound = LeadError_('not_found', 'Enquiry not found.');
   if (typeof reference !== 'string' || !REFERENCE_PATTERN.test(reference)) throw notFound;
+  if (typeof token !== 'string' || !TOKEN_PATTERN.test(token)) throw notFound;
   var found = findLead_(reference);
-  if (!found || typeof token !== 'string' || !token || !safeEqual_(sha256Hex_(token), found.lead.tokenHash)) throw notFound;
+  if (!found || !safeEqual_(sha256Hex_(token), found.lead.tokenHash)) throw notFound;
   return found;
 }
 
@@ -667,27 +732,99 @@ function pushHistory_(lead, entry) {
   lead.history = (lead.history || []).concat([entry]).slice(-CONFIG.HISTORY_LIMIT);
 }
 
-function enquiryEmails_(lead) {
+/** Direct links into the Sheet for the team email: the enquiry's own row and the dashboard. */
+function sheetLinks_(row) {
+  var ss = spreadsheet_();
+  var url = ss.getUrl().replace(/\/edit.*$/, '/edit');
+  var links = { register: url + '#gid=' + leadsSheet_().getSheetId() };
+  if (row) links.row = links.register + '&range=A' + row;
+  var dashboard = ss.getSheetByName(CONFIG.SHEETS.dashboard);
+  if (dashboard) links.dashboard = url + '#gid=' + dashboard.getSheetId();
+  return links;
+}
+
+function enquiryEmails_(lead, row) {
   var team = notifyEmail_();
-  var internal = M.buildInternalNotification(lead);
+  var links = sheetLinks_(row);
+  var internal = M.buildInternalNotification(lead, links);
   var ack = M.buildCustomerAcknowledgement(lead, team);
   return [
-    { to: team, replyTo: lead.contact.email, subject: internal.subject, text: internal.text },
+    { to: team, replyTo: lead.contact.email, subject: internal.subject, text: internal.text, html: internalEmailHtml_(lead, links) },
     { to: lead.contact.email, replyTo: team, subject: ack.subject, text: ack.text },
   ];
+}
+
+function escapeHtml_(value) {
+  return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+  });
+}
+
+/** HTML version of the team notification: a summary table and a button that opens the row. */
+function internalEmailHtml_(lead, links) {
+  var row = M.toLeadRegisterRow(lead);
+  var c = lead.contact;
+  var money = function (rands) { return formatMoney_(rands); };
+  var lines = [
+    ['Reference', lead.id],
+    ['Name', c.fullName],
+    ['Company', c.company || '—'],
+    ['Town or city', c.location],
+    ['Email', c.email],
+    ['Phone', c.phone || '—'],
+    ['WhatsApp follow-up', row['WhatsApp OK']],
+    ['Requirement', row['Lead Type']],
+    ['Quantity', formatCount_(row['Quantity (pads)']) + ' pads (' + formatCount_(row['Packs of 10']) + ' packs of 10)'],
+    ['Price wanted', money(row['Price wanted /pad']) + ' per pad · ' + money(row['Price wanted /pack']) + ' per pack'],
+    ['Customer total', money(row['Customer total'])],
+    ['Our indicative total', money(row['Our total'])],
+    ['Stickers/decals', row['Stickers/Decals']],
+    ['Delivery', row.Delivery === 'Collect' ? 'Customer will collect' : 'Deliver to ' + (row['Delivery point'] || '(not given yet)')],
+  ];
+  var button = function (url, label, primary) {
+    return '<a href="' + escapeHtml_(url) + '" style="display:inline-block;margin:0 8px 8px 0;padding:12px 18px;border-radius:4px;font-weight:bold;text-decoration:none;' +
+      (primary ? 'background:#2f6f68;color:#ffffff;' : 'border:2px solid #2f6f68;color:#22544f;') + '">' + escapeHtml_(label) + '</a>';
+  };
+  return [
+    '<div style="font-family:Arial,Helvetica,sans-serif;color:#14232a;max-width:600px">',
+    '<h2 style="margin:0 0 4px">New website enquiry ' + escapeHtml_(lead.id) + '</h2>',
+    '<p style="margin:0 0 16px;color:#5d6c70">Submitted ' + escapeHtml_(lead.submittedAt) + '</p>',
+    '<p style="margin:0 0 16px">',
+    links.row ? button(links.row, 'Open this enquiry in Google Sheets', true) : '',
+    links.dashboard ? button(links.dashboard, 'Open dashboard', false) : '',
+    '</p>',
+    '<table style="border-collapse:collapse;width:100%">',
+    lines.map(function (line) {
+      return '<tr><td style="padding:6px 10px;border-bottom:1px solid #e3e6e2;color:#5d6c70;white-space:nowrap">' + escapeHtml_(line[0]) +
+        '</td><td style="padding:6px 10px;border-bottom:1px solid #e3e6e2;font-weight:bold">' + escapeHtml_(line[1]) + '</td></tr>';
+    }).join(''),
+    '</table>',
+    '<p style="margin:16px 0 0;color:#5d6c70;font-size:13px">Reply to this email to answer the customer directly.</p>',
+    '</div>',
+  ].join('');
+}
+
+function remainingEmailQuota_() {
+  try {
+    return MailApp.getRemainingDailyQuota();
+  } catch (error) {
+    return 100;
+  }
 }
 
 function sendEmails_(emails) {
   (emails || []).forEach(function (email) {
     if (!email || !email.to || !email.subject) return;
     try {
-      MailApp.sendEmail({
+      var message = {
         to: email.to,
         replyTo: email.replyTo || undefined,
         subject: email.subject,
         body: email.text || '',
         name: setting_('Company name') || 'PureLine Hygiene',
-      });
+      };
+      if (email.html) message.htmlBody = email.html;
+      MailApp.sendEmail(message);
     } catch (error) {
       console.error('Email to ' + email.to + ' failed: ' + error);
     }
@@ -703,7 +840,7 @@ function handleSignedRow_(body) {
   if (!secret || !safeEqual_(hmacHex_(body.payload, secret), body.signature)) throw LeadError_('forbidden', 'Invalid signature.');
   var message = JSON.parse(body.payload);
   var lock = LockService.getScriptLock();
-  lock.waitLock(20000);
+  if (!lock.tryLock(LIMITS.lockWaitMs)) throw LeadError_('busy', 'We are busy right now. Please try again in a moment.');
   try {
     upsertRegisterRow_(message.row || {});
   } finally {
@@ -1316,6 +1453,14 @@ function setupLeadsSheet_(sheet) {
     rule('Lost', '#f6f6f6', '#999999'),
   ]);
   if (!sheet.getFilter()) sheet.getRange(1, 1, Math.max(sheet.getLastRow(), 2), M.REGISTER_COLUMNS.length).createFilter();
+
+  // Warn staff before they edit the header row or the hidden columns the website relies on.
+  sheet.getProtections(SpreadsheetApp.ProtectionType.RANGE).forEach(function (protection) {
+    if (String(protection.getDescription()).indexOf('PureLine:') === 0) protection.remove();
+  });
+  sheet.getRange(1, 1, 1, HEADERS.length).protect().setDescription('PureLine: column headings').setWarningOnly(true);
+  sheet.getRange(1, M.REGISTER_COLUMNS.length + 1, sheet.getMaxRows(), SYSTEM_COLUMNS.length).protect()
+    .setDescription('PureLine: website data (do not edit)').setWarningOnly(true);
 }
 
 function setupSettingsSheet_(sheet) {

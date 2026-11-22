@@ -50,15 +50,24 @@ email* on the Settings tab.
 - Each save takes 1–3 seconds. The page shows "Saving your changes…" while it waits.
 - A free Gmail account can send about **100 emails a day**, and each enquiry sends 2, so the limit is
   roughly 50 enquiries a day. A Google Workspace account allows far more.
-- Spam protection:
-  - a hidden honeypot field;
-  - site-wide caps of 300 drafts and 150 submissions per hour;
-  - prices recalculated on the server;
-  - random references, and edit tokens stored only as hashes.
+- **Spam and abuse protection** (all limits are in `LIMITS` at the top of `apps-script/Backend.js`):
+  - **Timing:** a draft saved within 3 seconds of the page opening, or a submission within 3 seconds of
+    its draft, is rejected. The page pauses briefly if needed, so real people never see this.
+  - **Honeypot:** a hidden field that only bots fill in.
+  - **Site-wide caps per hour:** 300 drafts, 150 submissions, 2,000 reads and saves.
+  - **Per-enquiry caps:** 120 saves per draft, 10 submit attempts per enquiry.
+  - **Strict input checks:** 8 KB body limit; unknown fields and malformed ids are refused before the
+    Sheet is touched; all text is validated and length-limited.
+  - **Safety:** formula injection is neutralised; prices are recalculated on the server; references are
+    random and edit tokens are stored only as hashes; one set of emails per enquiry; a busy lock returns
+    "please try again" instead of failing.
+  - **Email quota:** when Gmail's daily quota is nearly used up, only the team is emailed, and a note is
+    added to the lead. Enquiries are always saved.
+  - **Tests:** `tests/security.test.js` attack-tests all of this.
 
-  Apps Script can't see visitor IP addresses, so there are no per-visitor limits. If spam becomes a problem,
-  add Cloudflare Turnstile: put the site key on the Settings tab and the secret in **Project Settings →
-  Script properties** as `TURNSTILE_SECRET`.
+  Apps Script can't see visitor IP addresses, so the limits are site-wide or per enquiry rather than per
+  visitor. If spam becomes a problem, add Cloudflare Turnstile: put the site key on the Settings tab and
+  the secret in **Project Settings → Script properties** as `TURNSTILE_SECRET`.
 - `vercel.json` sends the security headers: a CSP that allows only this site and `script.google.com`.
   `.vercelignore` keeps `server/`, `tests/`, `docs/`, `apps-script/` and `dist/` out of the public site.
 

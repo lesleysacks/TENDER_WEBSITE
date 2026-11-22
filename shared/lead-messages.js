@@ -94,14 +94,20 @@
     ].join('\n');
   }
 
-  /** Internal notification for the sales team. */
-  function buildInternalNotification(lead) {
+  /**
+   * Internal notification for the sales team. `links` (optional) adds quick links into the lead
+   * register: { row: link to this enquiry's row, dashboard: link to the dashboard }.
+   */
+  function buildInternalNotification(lead, links) {
     const c = lead.contact;
+    const quick = links || {};
     return {
       subject: `New website enquiry ${lead.id}`,
       text: [
         `Lead reference: ${lead.id}`,
         `Submitted: ${lead.submittedAt}`,
+        ...(quick.row ? ['', `Open this enquiry in the lead register: ${quick.row}`] : []),
+        ...(quick.dashboard ? [`Dashboard: ${quick.dashboard}`] : []),
         '',
         `Name: ${c.fullName}`,
         `Company: ${c.company || '-'}`,
