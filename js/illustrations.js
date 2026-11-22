@@ -116,6 +116,9 @@
       <rect class="l-bakkie" x="0" y="-62" width="124" height="34"/>
       <path class="l-bakkie" d="M124 -28 V-80 Q124 -88 132 -88 H174 L202 -58 H220 Q228 -58 228 -50 V-28 Z"/>
       <path class="l-window" d="M134 -80 H170 L192 -60 H134 Z"/>
+      <rect class="l-livery" x="0" y="-36" width="228" height="4"/>
+      <text class="l-bakkie-text" x="12" y="-42">PURELINE</text>
+      <text class="l-bakkie-door" x="138" y="-42">HYGIENE</text>
       <rect class="l-chassis" x="-4" y="-32" width="236" height="10"/>
       ${wheel(42, -18, 17)}${wheel(186, -18, 17)}`);
 
@@ -127,8 +130,10 @@
       <path class="l-bus" d="M0 -30 V-118 Q0 -130 12 -130 H236 Q252 -130 262 -118 L294 -72 Q302 -62 302 -50 V-30 Z"/>
       ${windows}
       <path class="l-glass" d="M244 -116 Q254 -116 260 -106 L284 -72 H244 Z"/>
-      <rect class="l-livery" x="0" y="-70" width="302" height="7"/>
-      <line class="l-seam" x1="150" y1="-118" x2="150" y2="-32"/>
+      <rect class="l-livery" x="0" y="-80" width="302" height="7"/>
+      <text class="l-bus-text" x="16" y="-46">PURELINE</text>
+      <text class="l-bus-sub" x="18" y="-36">HYGIENE · DELIVERIES</text>
+      <line class="l-seam" x1="198" y1="-118" x2="198" y2="-32"/>
       <rect class="l-chassis" x="-2" y="-34" width="306" height="9"/>
       <rect class="l-lamp" x="294" y="-58" width="8" height="8" rx="2"/>
       ${wheel(62, -18, 18)}${wheel(246, -18, 18)}`);

@@ -30,11 +30,11 @@
   });
 
   // ---------- Business email (from site-config.js) ----------
+  // Links read "PureLine Hygiene"; only the mailto target carries the address.
 
   if (config.businessEmail) {
     document.querySelectorAll('[data-business-email]').forEach((link) => {
       link.href = `mailto:${config.businessEmail}`;
-      link.textContent = config.businessEmail;
     });
   }
 

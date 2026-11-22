@@ -284,7 +284,7 @@ try {
   // ---- Hero image + removed sections ----
   check('removed sections are gone (Solutions, Quality, Process, landing FAQs, Contact)', (await evaluate('!document.querySelector("#solutions, #faqs, #contact, #quality-title, #process-title")')));
   check('hero shows the logistics image behind the copy', (await evaluate('!!document.querySelector(".hero [data-logistics-scene] svg")')) && !(await evaluate('!!document.querySelector(".distribution")')));
-  check('footer: PURELINE HYGIENE on the left, business email link on the right', await evaluate('(() => { const b = document.querySelector(".footer-brand").getBoundingClientRect(), e = document.querySelector(".footer-email"); const r = e.getBoundingClientRect(); return document.querySelector(".footer-brand").textContent === "PURELINE HYGIENE" && e.getAttribute("href") === "mailto:Nextgeneration.ai7.0@gmail.com" && e.textContent === "Nextgeneration.ai7.0@gmail.com" && r.left > b.right && Math.abs(r.right - document.querySelector(".footer-inner").getBoundingClientRect().right) < 2; })()'));
+  check('footer: PURELINE HYGIENE on the left, "PureLine Hygiene" email link on the right (address hidden)', await evaluate('(() => { const b = document.querySelector(".footer-brand").getBoundingClientRect(), e = document.querySelector(".footer-email"); const r = e.getBoundingClientRect(); return document.querySelector(".footer-brand").textContent === "PURELINE HYGIENE" && e.getAttribute("href") === "mailto:Nextgeneration.ai7.0@gmail.com" && e.textContent.trim() === "PureLine Hygiene" && !document.body.innerText.includes("Nextgeneration") && r.left > b.right && Math.abs(r.right - document.querySelector(".footer-inner").getBoundingClientRect().right) < 2; })()'));
 
 
   // ---- FAQ page ----

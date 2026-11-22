@@ -410,6 +410,10 @@ section[tabindex="-1"]:focus { outline: none; }
 .l-hub { fill: #8b9ca0; }
 .l-bakkie { fill: #e7e4da; }
 .l-bus { fill: #ece9df; }
+.l-bus-text { fill: var(--ink); font-family: var(--sans); font-size: 24px; font-weight: 700; letter-spacing: 3px; }
+.l-bus-sub { fill: var(--teal-dark); font-family: var(--mono); font-size: 9px; letter-spacing: 1.5px; }
+.l-bakkie-text { fill: var(--ink); font-family: var(--sans); font-size: 18px; font-weight: 700; letter-spacing: 2px; }
+.l-bakkie-door { fill: var(--teal-dark); font-family: var(--sans); font-size: 11px; font-weight: 700; letter-spacing: 1px; }
 .l-van { fill: #f1efe8; }
 .l-van-text { fill: var(--ink); font-family: var(--sans); font-size: 26px; font-weight: 700; letter-spacing: 3px; }
 .l-van-sub { fill: var(--teal-dark); font-family: var(--mono); font-size: 10px; letter-spacing: 1.5px; }
@@ -449,7 +453,8 @@ section[tabindex="-1"]:focus { outline: none; }
 .site-footer { padding: 1.75rem 0; background: var(--ink); color: #c5d2ce; font-size: 0.8rem; }
 .footer-inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem 2rem; }
 .footer-brand { letter-spacing: 0.22em; }
-.footer-email { color: var(--aqua); font-size: 0.9rem; text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; overflow-wrap: anywhere; }
+.footer-email { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--aqua); font-size: 0.9rem; text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
+.mail-icon { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; }
 .footer-email:hover { color: #fff; }
 
 /* ---------- FAQ page ---------- */
