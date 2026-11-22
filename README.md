@@ -9,12 +9,15 @@ Requires Node.js 20 or later.
 
 ```bash
 npm start          # http://127.0.0.1:8000
-npm test           # unit + API tests
+npm test           # unit, API and Apps Script tests
+npm run build:apps-script   # rebuild dist/apps-script/Code.gs after changing shared/ or apps-script/
 npm run test:e2e   # headless Chrome/Edge journey test + screenshots in tests/e2e/output/
 ```
 
-The site can no longer be hosted as static files only: lead capture needs the Node server
-(any host that runs Node, behind HTTPS).
+Lead capture needs a backend. **Recommended:** host the pages on Vercel (static) and save enquiries with the
+Google Apps Script in `dist/apps-script/Code.gs` (free; leads land in a Google Sheet). **Alternative:** run the
+Node server (`npm start`) on a host with a persistent disk (`render.yaml`, or `deploy/pureline.service` +
+Cloudflare Tunnel). **See [docs/DEPLOY.md](docs/DEPLOY.md).**
 
 ## Structure
 
@@ -33,6 +36,7 @@ The site can no longer be hosted as static files only: lead capture needs the No
 | `js/site.js` | Mobile navigation, hero background image |
 | `server/` | HTTP server, lead service, file store, rate limiting, integrations, staff CLI |
 | `docs/ASSET-REGISTER.md` | Internal asset attribution and permissions register |
+| `docs/DEPLOY.md`, `render.yaml`, `deploy/` | Hosting guide, Render Blueprint, systemd unit |
 | `tests/` | `node:test` suites and the browser end-to-end test |
 
 ## Pricing
@@ -42,14 +46,16 @@ Only the **R0.30 per pad** starting price is confirmed. `shared/pricing.js` defi
 To approve a tier, change its `unitPriceCents` and set `approved: true`. The server recalculates every price;
 values sent by the browser are ignored.
 
-The estimator has two sliders: **loose pads** (shown as packs of 10, `PACK_SIZE`) and **price you want per pad**
-(shown as the price per pack of 10). The estimated selling price is quantity × chosen price. The chosen-price range
+The estimator asks **how many** (type single pads or packs of 10, `PACK_SIZE`; the two boxes stay in sync) and
+**how much you want to pay** (per pad or per pack of 10). It shows "You asked for 1,200 packs = R3,600.00",
+the base price for that quantity at the chosen price (quantity × chosen price). The chosen-price range
 (`TARGET_PRICE`, currently R0.10–R3.00, default R0.30) is a placeholder awaiting approval. The chosen price is saved
 with the enquiry (`targetUnitPriceCents`, `targetPackPriceCents`, `targetTotalCents`) alongside our indicative price.
 
 ## Lead lifecycle
 
-1. **Stage 1 (50%)** — quantity, packaging, delivery and the qualifying answer are saved via `POST /api/leads`.
+1. **Stage 1 (50%)** — quantity, chosen price, stickers/decals, delivery (or collection), the optional delivery
+   point and the qualifying answer ("Which describes you?", asked in the hero) are saved via `POST /api/leads`.
    The server generates a random reference (`PLH-` + 8 hex characters from the OS CSPRNG), recalculates
    the estimate and stores the lead as `DRAFT` with a creation timestamp and a snapshot of the original draft.
    The browser receives a random edit token (stored only as a hash) so only it can update that draft.
@@ -110,20 +116,30 @@ npm run leads -- delete PLH-8F3A92C7  # POPIA deletion request
 - Unsubmitted drafts are deleted after `DRAFT_RETENTION_DAYS` (default 30).
 - Consent: privacy consent is required to submit, and WhatsApp follow-up is a separate opt-in.
 
-## Future integrations (not live)
+## Integrations
 
-Website → backend → Google Apps Script → Google Sheets lead register → business email / WhatsApp.
+Website → backend → Google Apps Script → Google Sheets lead register + business email (live once the script is deployed) → WhatsApp (future).
 
-- `server/integrations/index.js` builds the lead-register row (Lead ID … Status), the internal
-  notification, the customer acknowledgement and the WhatsApp link with the reference prefilled.
+- **Recommended backend: Google Apps Script.** `dist/apps-script/Code.gs` (built from `apps-script/Backend.js`
+  and `shared/*` with `npm run build:apps-script`) saves leads to a Google Sheet, emails the team and the
+  customer, and adds quotation and email-reply tools for staff. Set `leadsEndpoint` in `js/site-config.js`
+  to its `/exec` URL. See [docs/DEPLOY.md](docs/DEPLOY.md).
+- `shared/lead-messages.js` defines the Leads columns (every calculator answer) and the email texts, shared by
+  the Apps Script and the Node server's `server/integrations/index.js`.
 - Set `APPS_SCRIPT_WEBHOOK_URL` and `APPS_SCRIPT_SHARED_SECRET` to send HMAC-signed rows to the Sheet.
-  `server/integrations/google-apps-script/LeadRegister.gs` is the Apps Script template (upsert by Lead ID).
-- Email and automated WhatsApp messages need the official business accounts and an approved WhatsApp Business
-  integration. Until then the server logs that they are not configured.
+  The same `Code.gs` accepts these signed rows (upsert by Lead ID).
+- **Email:** when an enquiry is submitted, the Apps Script also emails the internal notification to
+  `BUSINESS_EMAIL` (default `Nextgeneration.ai7.0@gmail.com`) and an acknowledgement to the customer, sent from the Google account
+  that owns the script. No mail-server credentials are stored on the website server. Email is live as soon
+  as the Apps Script is deployed and `APPS_SCRIPT_WEBHOOK_URL` / `APPS_SCRIPT_SHARED_SECRET` are set.
+- Automated WhatsApp messages need an approved WhatsApp Business integration. Until then the server logs
+  that WhatsApp is not configured.
 - Detailed Google Forms are sent manually after internal review, not to every visitor.
 
 ## Environment variables
 
 `PORT` (8000), `HOST` (127.0.0.1), `LEADS_FILE`, `TRUST_PROXY` (`cloudflare` or `true`), `ALLOWED_ORIGINS`, `NODE_ENV`,
 `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`,
-`DRAFT_RETENTION_DAYS`, `APPS_SCRIPT_WEBHOOK_URL`, `APPS_SCRIPT_SHARED_SECRET`.
+`DRAFT_RETENTION_DAYS`, `BUSINESS_EMAIL`, `APPS_SCRIPT_WEBHOOK_URL`, `APPS_SCRIPT_SHARED_SECRET`.
+
+The public contact address shown on the site (footer, confirmation, FAQ) is `businessEmail` in `js/site-config.js`.

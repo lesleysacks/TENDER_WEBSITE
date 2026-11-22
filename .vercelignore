@@ -1,0 +1,15 @@
+# Vercel serves this repository as a static site. Keep server code, tests, internal docs and
+# build output out of the public deployment (lead data in data/ is never committed anyway).
+server/
+tests/
+docs/
+data/
+apps-script/
+scripts/
+dist/
+deploy/
+.vscode/
+README.md
+Planning.txt
+render.yaml
+*.csv

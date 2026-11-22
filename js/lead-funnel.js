@@ -13,6 +13,8 @@
   const S = window.PureLineLeadSchema;
   const config = window.PURELINE_CONFIG || {};
   const API = config.apiBase || '/api';
+  // When set, enquiries go straight to the Google Apps Script web app instead of the Node server.
+  const APPS_SCRIPT = config.leadsEndpoint || '';
   const SESSION_KEY = 'pureline-enquiry';
 
   const $ = (selector, scope = document) => scope.querySelector(selector);
@@ -68,9 +70,7 @@
 
   async function initTurnstile() {
     try {
-      const response = await fetch(`${API}/config`);
-      if (!response.ok) return;
-      const { turnstileSiteKey } = await response.json();
+      const { turnstileSiteKey } = await api('GET', '/config');
       if (!turnstileSiteKey) return;
       turnstile.enabled = true;
       await loadScript('https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit');
@@ -117,7 +117,65 @@
 
   // ---------- API ----------
 
+  /**
+   * Google Apps Script cannot answer CORS preflight requests or read custom headers, so every call
+   * is a "simple" text/plain POST carrying an action, the reference and the edit token. Apps Script
+   * always replies HTTP 200; the real status is in the JSON body.
+   */
+  function appsScriptRequest(method, path, body) {
+    const [, reference, submit] = path.match(/^\/leads\/([^/]+)(\/submit)?$/) || [];
+    let action;
+    if (path === '/config') action = 'config';
+    else if (path === '/leads' && method === 'POST') action = 'create';
+    else if (submit) action = 'submit';
+    else if (method === 'PATCH') action = 'update';
+    else action = 'get';
+    const payload = { action, ...(body || {}) };
+    // The backend rejects drafts saved within 3 seconds of the page opening (a bot signal).
+    if (action === 'create') payload.elapsedMs = Math.round(performance.now());
+    if (reference) payload.ref = reference;
+    if (session && reference) payload.token = session.token;
+    return fetch(APPS_SCRIPT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+      redirect: 'follow',
+    }).then(async (response) => {
+      const data = await response.json().catch(() => ({}));
+      const status = response.ok && data && typeof data.status === 'number' ? data.status : response.ok ? 200 : response.status;
+      return { ok: status < 400, status, data };
+    });
+  }
+
+  /** Real people never hit the backend's "too fast" checks; this pause makes sure of it. */
+  const MIN_MS = 3200;
+  const waitUntil = (ms) => new Promise((resolve) => setTimeout(resolve, Math.max(0, ms)));
+  let draftCreatedAt = 0;
+
   async function api(method, path, body) {
+    if (APPS_SCRIPT) {
+      if (method === 'POST' && path === '/leads') await waitUntil(MIN_MS - performance.now());
+      if (/\/submit$/.test(path) && draftCreatedAt) await waitUntil(draftCreatedAt + MIN_MS - Date.now());
+      let result;
+      try {
+        result = await appsScriptRequest(method, path, body);
+      } catch (error) {
+        // Usually the web app is not deployed with "Who has access: Anyone", so Google answers with a
+        // sign-in page instead of JSON and the browser blocks it.
+        console.warn(`[enquiry] Could not reach the Apps Script web app (${APPS_SCRIPT}). Open that URL in a private window: it should show {"ok":true}. If it asks you to sign in, redeploy with "Who has access: Anyone".`, error);
+        throw Object.assign(new Error('We could not reach our server. Your selections are still here — please try again.'), { code: 'network' });
+      }
+      if (!result.ok) {
+        const data = result.data || {};
+        throw Object.assign(new Error(data.message || 'Something went wrong. Please try again.'), {
+          code: data.error || 'http',
+          status: result.status,
+          errors: data.errors || {},
+        });
+      }
+      return result.data;
+    }
+
     let response;
     try {
       response = await fetch(`${API}${path}`, {
@@ -183,9 +241,44 @@
     els.summary('unit').textContent = local.unitPriceCents ? P.formatRand(requirements.targetUnitPriceCents) : '—';
     els.summary('pack').textContent = local.packPriceCents ? P.formatRand(requirements.targetPackPriceCents ?? local.packPriceCents) : '—';
     els.summary('total').textContent = total ? P.formatRand(total) : '—';
-    els.summary('packaging').textContent = requirements.packaging ? 'Required' : 'Not required';
-    els.summary('delivery').textContent = requirements.delivery ? 'Required' : 'Not required';
+    els.summary('packaging').textContent = requirements.packaging ? 'Yes' : 'No — plain white packs';
+    els.summary('delivery').textContent = !requirements.delivery
+      ? 'Collection'
+      : requirements.deliveryPoint
+        ? `To ${requirements.deliveryPoint}`
+        : 'Required — delivery point to be confirmed';
     els.summary('leadType').textContent = S.getLeadType(requirements.leadType)?.label || '—';
+  }
+
+  // ---------- Step 1 ("Which describes you?") lives in the hero: keep a reminder by the Save button ----------
+
+  const step1 = {
+    card: document.getElementById('lead-type'),
+    status: $('[data-step1-status]'),
+    answer: $('[data-step1-answer]'),
+    go: $('[data-step1-go]'),
+    goLabel: $('[data-step1-go-label]'),
+  };
+
+  function renderStep1Status() {
+    if (!step1.status) return;
+    const checked = els.leadTypes.find((input) => input.checked);
+    step1.status.dataset.state = checked ? 'done' : 'missing';
+    if (checked) step1.answer.textContent = checked.closest('label').textContent.trim();
+    step1.goLabel.textContent = checked ? 'Change' : 'Answer Step 1 now';
+  }
+
+  /** Scrolls to the Step 1 card, highlights it and puts keyboard focus on the first option. */
+  function goToStep1(highlight) {
+    if (!step1.card) return;
+    step1.card.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'center' });
+    if (highlight) {
+      step1.card.classList.remove('needs-answer');
+      void step1.card.offsetWidth; // restart the nudge
+      step1.card.classList.add('needs-answer');
+    }
+    const target = els.leadTypes.find((input) => input.checked) || els.leadTypes[0];
+    setTimeout(() => target && target.focus({ preventScroll: true }), prefersReducedMotion() ? 0 : 450);
   }
 
   function showStage1Error(message, focusTarget) {
@@ -201,7 +294,12 @@
     const check = S.validateRequirements(requirements);
     if (!check.ok) {
       if (check.errors.quantity) return showStage1Error(check.errors.quantity, $('[data-qty-input]'));
-      if (check.errors.leadType) return showStage1Error(check.errors.leadType, els.leadTypes[0]);
+      if (check.errors.leadType) {
+        showStage1Error('Choose what best describes you in Step 1 (we have taken you there), then save again.');
+        goToStep1(true);
+        return;
+      }
+      if (check.errors.deliveryPoint) return showStage1Error(check.errors.deliveryPoint, $('[data-req="deliveryPoint"]'));
       return showStage1Error('Please check your selections.');
     }
     showStage1Error('');
@@ -229,6 +327,7 @@
 
   function enterDraftStage(lead) {
     stage = 'draft';
+    draftCreatedAt = Date.parse(lead.createdAt) || Date.now();
     setProgress(50);
     renderSummary(lead.requirements);
     setSyncStatus('saved');
@@ -267,7 +366,8 @@
     setSyncStatus('saving');
     pendingSync = true;
     clearTimeout(syncTimer);
-    syncTimer = setTimeout(syncNow, 700);
+    // Apps Script answers in 1–3 seconds, so wait a little longer before saving each change.
+    syncTimer = setTimeout(syncNow, APPS_SCRIPT ? 1500 : 700);
   }
 
   function syncNow() {
@@ -434,6 +534,8 @@
   els.leadTypes.forEach((input) =>
     input.addEventListener('change', () => {
       showStage1Error('');
+      document.getElementById('lead-type')?.classList.remove('needs-answer');
+      renderStep1Status();
       scheduleSync();
     })
   );
@@ -464,6 +566,7 @@
       els.leadTypes.forEach((input) => {
         input.checked = input.value === lead.requirements.leadType;
       });
+      renderStep1Status();
       enterDraftStage(lead);
       pendingSync = false;
     } catch (error) {
@@ -471,6 +574,8 @@
     }
   }
 
+  step1.go?.addEventListener('click', () => goToStep1(false));
+  renderStep1Status();
   restore();
   initTurnstile();
 })();

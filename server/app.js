@@ -29,7 +29,7 @@ const MIME_TYPES = {
 };
 
 // Cloudflare Turnstile needs its script and iframe allowed, but only when it is switched on.
-function buildSecurityHeaders({ turnstile = false } = {}) {
+function buildSecurityHeaders({ turnstile = false, hsts = false } = {}) {
   const cf = turnstile ? ' https://challenges.cloudflare.com' : '';
   return {
     'Content-Security-Policy': [
@@ -40,6 +40,7 @@ function buildSecurityHeaders({ turnstile = false } = {}) {
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data:",
       "connect-src 'self'",
+      "object-src 'none'",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
@@ -48,6 +49,10 @@ function buildSecurityHeaders({ turnstile = false } = {}) {
     'Referrer-Policy': 'same-origin',
     'X-Frame-Options': 'DENY',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    'Cross-Origin-Opener-Policy': 'same-origin',
+    'X-Permitted-Cross-Domain-Policies': 'none',
+    // Only behind HTTPS (production): tells browsers to never use plain HTTP for this site.
+    ...(hsts ? { 'Strict-Transport-Security': 'max-age=31536000; includeSubDomains' } : {}),
   };
 }
 
@@ -129,10 +134,11 @@ function createApp({
   allowedOrigins = [],
   rateLimits = {},
   turnstile = { enabled: false, siteKey: null, verify: async () => true },
+  hsts = false,
   logger = console,
 }) {
   const root = path.resolve(rootDir);
-  const pageHeaders = buildSecurityHeaders({ turnstile: turnstile.enabled });
+  const pageHeaders = buildSecurityHeaders({ turnstile: turnstile.enabled, hsts });
   const TEN_MINUTES = 10 * 60 * 1000;
   const HOUR = 60 * 60 * 1000;
   const limiters = {
@@ -143,6 +149,7 @@ function createApp({
     // Across all visitors — caps a spam wave spread over many addresses
     globalCreate: createRateLimiter({ windowMs: HOUR, max: 300, ...rateLimits.globalCreate }),
     globalSubmit: createRateLimiter({ windowMs: HOUR, max: 150, ...rateLimits.globalSubmit }),
+    globalUpdate: createRateLimiter({ windowMs: HOUR, max: 2000, ...rateLimits.globalUpdate }),
   };
 
   // Behind Cloudflare (including Cloudflare Tunnel) every request arrives from the proxy, so the real
@@ -152,8 +159,10 @@ function createApp({
       const cfIp = String(req.headers['cf-connecting-ip'] || '').trim();
       if (cfIp) return cfIp;
     } else if (trustProxy) {
-      const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-      if (forwarded) return forwarded;
+      // Use the address our own proxy appended (the last one). Earlier entries are whatever the
+      // client sent, so trusting the first one would let anyone dodge the per-visitor limits.
+      const hops = String(req.headers['x-forwarded-for'] || '').split(',').map((h) => h.trim()).filter(Boolean);
+      if (hops.length) return hops[hops.length - 1];
     }
     return req.socket.remoteAddress || 'unknown';
   };
@@ -247,13 +256,13 @@ function createApp({
     }
 
     if (req.method === 'GET') {
-      if (!limit(res, limiters.update, req)) return;
+      if (!limit(res, limiters.update, req, limiters.globalUpdate)) return;
       sendJson(res, 200, { lead: await leadService.getDraft(reference, token) });
       return;
     }
 
     if (req.method === 'PATCH') {
-      if (!limit(res, limiters.update, req)) return;
+      if (!limit(res, limiters.update, req, limiters.globalUpdate)) return;
       const body = await readJsonBody(req);
       sendJson(res, 200, { lead: await leadService.updateDraft(reference, token, body.requirements) });
       return;

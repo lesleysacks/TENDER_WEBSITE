@@ -30,7 +30,7 @@
   );
 
   const MAX_QUANTITY = 1000000;
-  const LIMITS = Object.freeze({ fullName: 120, company: 160, location: 120, email: 254, phone: 30 });
+  const LIMITS = Object.freeze({ fullName: 120, company: 160, location: 120, email: 254, phone: 30, deliveryPoint: 160 });
 
   // Trim, drop control characters and collapse internal whitespace.
   function cleanText(value) {
@@ -56,6 +56,12 @@
     if (typeof source.packaging !== 'boolean') errors.packaging = 'Packaging selection is missing.';
     if (typeof source.delivery !== 'boolean') errors.delivery = 'Delivery selection is missing.';
     if (!getLeadType(source.leadType)) errors.leadType = 'Choose the option that best describes your requirement.';
+    // Optional: where the order should be delivered. Older drafts may not have it.
+    if (source.deliveryPoint !== undefined && source.deliveryPoint !== null && typeof source.deliveryPoint !== 'string') {
+      errors.deliveryPoint = 'Delivery point must be text.';
+    }
+    const deliveryPoint = cleanText(source.deliveryPoint);
+    if (deliveryPoint.length > LIMITS.deliveryPoint) errors.deliveryPoint = 'Delivery point is too long.';
 
     const ok = Object.keys(errors).length === 0;
     return {
@@ -67,6 +73,7 @@
             targetUnitPriceCents: source.targetUnitPriceCents,
             packaging: source.packaging,
             delivery: source.delivery,
+            deliveryPoint,
             leadType: source.leadType,
           }
         : null,

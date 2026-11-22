@@ -9,21 +9,25 @@ window.PURELINE_CONFIG = Object.freeze({
     ? `${window.location.protocol}//${window.location.hostname}:8000/api`
     : '/api',
 
+  // Google Apps Script web app that saves enquiries (its /exec URL from Deploy → Web app).
+  // Leave empty to use the Node server's /api instead (npm start). See docs/DEPLOY.md.
+  leadsEndpoint: 'https://script.google.com/macros/s/AKfycbzEgY4KB56RGSCV6fSqqo3S6dK_FKGyqp0xkzdpJjlN6aerQ8xYXXAvNKP7Y2Yyls4Y/exec',
+
   // Official business channels only (no personal numbers). Example WhatsApp format: '27XXXXXXXXX'.
-  businessEmail: '',
+  businessEmail: 'Nextgeneration.ai7.0@gmail.com',
   whatsappNumber: '',
 
   // Authentic photography. Leave a path empty to keep the drawn illustration in its place.
   photography: Object.freeze({
     logistics: '', // e.g. 'assets/photography/logistics-fleet.webp'
-    product: '', // e.g. 'assets/photography/product-pad.webp'
+    product: 'assets/photography/product-pads.webp',
     tiers: Object.freeze({
-      individual: '',
-      'small-packs': '',
-      'multiple-packs': '',
-      'bulk-packaging': '',
-      pallet: '',
-      'large-scale': '',
+      individual: 'assets/photography/individual-pads.webp',
+      'small-packs': 'assets/photography/small-packs.webp',
+      'multiple-packs': 'assets/photography/multiple-packs.webp',
+      'bulk-packaging': 'assets/photography/bulk-packaging.webp',
+      pallet: 'assets/photography/pallets.webp',
+      'large-scale': 'assets/photography/large-scale.webp',
     }),
   }),
 });

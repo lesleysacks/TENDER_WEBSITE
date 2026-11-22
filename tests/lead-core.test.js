@@ -8,7 +8,7 @@ const path = require('node:path');
 const S = require('../shared/lead-schema');
 const ids = require('../server/lead-id');
 const { FileLeadStore } = require('../server/lead-store');
-const { toLeadRegisterRow, buildCustomerAcknowledgement, buildWhatsAppLink, signPayload } = require('../server/integrations');
+const { toLeadRegisterRow, REGISTER_COLUMNS, buildCustomerAcknowledgement, buildInternalNotification, buildWhatsAppLink, signPayload } = require('../server/integrations');
 
 test('lead references look like PLH-8F3A92C7 and are unique', () => {
   const seen = new Set();
@@ -51,6 +51,11 @@ test('requirement validation', () => {
   assert.ok(S.validateRequirements({ ...good, leadType: 'other' }).errors.leadType);
   assert.ok(S.validateRequirements({ ...good, packaging: 'yes' }).errors.packaging);
   assert.equal(S.validateRequirements(null).ok, false);
+  // Delivery point is optional, cleaned and length-limited
+  assert.equal(S.validateRequirements(good).value.deliveryPoint, '');
+  assert.equal(S.validateRequirements({ ...good, deliveryPoint: '  Polokwane\n depot ' }).value.deliveryPoint, 'Polokwane depot');
+  assert.ok(S.validateRequirements({ ...good, deliveryPoint: 'x'.repeat(161) }).errors.deliveryPoint);
+  assert.ok(S.validateRequirements({ ...good, deliveryPoint: 42 }).errors.deliveryPoint);
 });
 
 test('contact validation: email required, phone recommended but optional, consent required', () => {
@@ -103,15 +108,53 @@ test('lead register row matches the Google Sheets columns', () => {
     contact: { fullName: 'A Buyer', company: 'Org', location: 'Durban', email: 'a@b.co.za', phone: '' },
   };
   const row = toLeadRegisterRow(lead);
-  assert.deepEqual(Object.keys(row), ['Lead ID', 'Date', 'Name', 'Company', 'Location', 'Email', 'Phone', 'Quantity', 'Unit Price', 'Total', 'Price Wanted', 'Pack Price Wanted', 'Estimated Selling Price', 'Packaging', 'Delivery', 'Lead Type', 'Status']);
-  assert.equal(row['Price Wanted'], 'R0.25');
-  assert.equal(row['Pack Price Wanted'], 'R2.50');
-  assert.equal(row['Estimated Selling Price'], 'R5,000.00');
-  assert.equal(row['Unit Price'], 'R0.30');
-  assert.equal(row.Total, 'R6,000.00');
+  assert.deepEqual(Object.keys(row), REGISTER_COLUMNS);
+  assert.deepEqual(REGISTER_COLUMNS.slice(0, 4), ['Lead ID', 'Status', 'Submitted', 'Created']);
+  // Money is in rands as numbers so the sheet can total it
+  assert.equal(row['Price wanted /pad'], 0.25);
+  assert.equal(row['Price wanted /pack'], 2.5);
+  assert.equal(row['Customer total'], 5000);
+  assert.equal(row['Our price /pad'], 0.3);
+  assert.equal(row['Our total'], 6000);
+  assert.equal(row['Quantity (pads)'], 20000);
+  assert.equal(row['Packs of 10'], 2000);
+  assert.equal(row['Single pads'], 0);
   assert.equal(row['Lead Type'], 'Tender');
   assert.equal(row.Status, 'Submitted');
+  assert.equal(row['Stickers/Decals'], 'Yes');
+  assert.equal(row.Delivery, 'Collect');
+  assert.equal(row['Delivery point'], '');
+  assert.equal(row['Staff notes'], '');
   assert.match(buildCustomerAcknowledgement(lead).text, /not a confirmed order or booking/);
+  // WhatsApp consent is stored on lead.consent, not lead.contact
+  const optedIn = { ...lead, submittedAt: lead.createdAt, consent: { whatsappFollowUp: true } };
+  assert.match(buildInternalNotification(optedIn).text, /WhatsApp follow-up permitted: Yes/);
+  assert.match(buildInternalNotification({ ...optedIn, consent: { whatsappFollowUp: false } }).text, /WhatsApp follow-up permitted: No/);
+});
+
+test('submitted enquiries are emailed to the business address and the customer via the Apps Script', async () => {
+  const { createNotifier } = require('../server/integrations');
+  const sent = [];
+  const fetchImpl = async (url, init) => { sent.push(JSON.parse(JSON.parse(init.body).payload)); return { ok: true }; };
+  const env = { APPS_SCRIPT_WEBHOOK_URL: 'https://script.example/exec', APPS_SCRIPT_SHARED_SECRET: 's' };
+  const notifier = createNotifier({ env, fetchImpl, logger: { error() {} } });
+  assert.deepEqual(notifier.status(), { googleSheets: true, email: true, businessEmail: 'Nextgeneration.ai7.0@gmail.com', whatsapp: false });
+  const lead = {
+    id: 'PLH-0000000A', createdAt: 't', submittedAt: 't', status: 'SUBMITTED', consent: { whatsappFollowUp: false },
+    requirements: { quantity: 100, packs: 10, unitPriceCents: 30, totalCents: 3000, targetUnitPriceCents: 30, targetPackPriceCents: 300, targetTotalCents: 3000, packaging: false, delivery: true, deliveryPoint: 'Durban', leadType: 'bulk' },
+    contact: { fullName: 'A Buyer', company: '', location: 'Durban', email: 'buyer@example.co.za', phone: '' },
+  };
+  await notifier.leadEvent('lead.draft_saved', { ...lead, status: 'DRAFT', contact: null });
+  await notifier.leadEvent('lead.submitted', lead);
+  assert.equal(sent[0].emails.length, 0, 'drafts send no email');
+  const [internal, ack] = sent[1].emails;
+  assert.equal(internal.to, 'Nextgeneration.ai7.0@gmail.com');
+  assert.equal(internal.replyTo, 'buyer@example.co.za');
+  assert.equal(ack.to, 'buyer@example.co.za');
+  assert.equal(ack.replyTo, 'Nextgeneration.ai7.0@gmail.com');
+  assert.match(ack.text, /PLH-0000000A/);
+  assert.equal(createNotifier({ env: { ...env, BUSINESS_EMAIL: 'sales@example.co.za' }, fetchImpl }).status().businessEmail, 'sales@example.co.za');
+  assert.equal(createNotifier({ env: {} }).status().email, false, 'no email until the Apps Script is configured');
 });
 
 test('WhatsApp links only exist for a configured number and carry the reference', () => {

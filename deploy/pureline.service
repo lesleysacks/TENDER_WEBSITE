@@ -1,0 +1,30 @@
+# systemd unit for a Linux VPS (Option B in docs/DEPLOY.md).
+# Install: sudo cp deploy/pureline.service /etc/systemd/system/ && sudo systemctl enable --now pureline
+[Unit]
+Description=PureLine Hygiene website and enquiry API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pureline
+WorkingDirectory=/opt/pureline
+ExecStart=/usr/bin/node server/index.js
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=8000
+Environment=TRUST_PROXY=cloudflare
+Environment=LEADS_FILE=/var/lib/pureline/leads.json
+# Secrets (Turnstile, Apps Script) go in this file, readable only by root: KEY=value per line
+EnvironmentFile=-/etc/pureline.env
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/pureline
+
+[Install]
+WantedBy=multi-user.target

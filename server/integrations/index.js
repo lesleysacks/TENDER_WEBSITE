@@ -1,95 +1,22 @@
 'use strict';
 
 /*
- * Future integration points: Website → Backend → Google Apps Script → Google Sheets lead register
- * → business email / WhatsApp follow-up.
+ * Integrations for the Node server: Website → this server → Google Apps Script → Google Sheets lead
+ * register + business email. (The site can also talk to the Apps Script directly; see apps-script/.)
+ * Row layout and email texts live in shared/lead-messages.js so both paths stay identical.
  *
- * Nothing here is live until the business supplies credentials through environment variables.
- * Without them every channel reports "not configured" and the lead is only stored by this server.
+ * Nothing here is live until APPS_SCRIPT_WEBHOOK_URL and APPS_SCRIPT_SHARED_SECRET are set.
  */
 
 const crypto = require('node:crypto');
-const { STATUS_LABELS, getLeadType } = require('../../shared/lead-schema');
-const { formatRand } = require('../../shared/pricing');
-
-const yesNo = (value) => (value ? 'Yes' : 'No');
-
-/** One row of the Google Sheets lead register, in the column order agreed with the business. */
-function toLeadRegisterRow(lead) {
-  const req = lead.requirements || {};
-  const contact = lead.contact || {};
-  return {
-    'Lead ID': lead.id,
-    Date: lead.createdAt,
-    Name: contact.fullName || '',
-    Company: contact.company || '',
-    Location: contact.location || '',
-    Email: contact.email || '',
-    Phone: contact.phone || '',
-    Quantity: req.quantity,
-    'Unit Price': formatRand(req.unitPriceCents),
-    Total: formatRand(req.totalCents),
-    'Price Wanted': req.targetUnitPriceCents ? formatRand(req.targetUnitPriceCents) : '',
-    'Pack Price Wanted': req.targetPackPriceCents ? formatRand(req.targetPackPriceCents) : '',
-    'Estimated Selling Price': req.targetTotalCents ? formatRand(req.targetTotalCents) : '',
-    Packaging: yesNo(req.packaging),
-    Delivery: yesNo(req.delivery),
-    'Lead Type': getLeadType(req.leadType)?.registerLabel || '',
-    Status: STATUS_LABELS[lead.status] || lead.status,
-  };
-}
-
-function describeRequirements(lead) {
-  const req = lead.requirements;
-  return [
-    `Quantity: ${req.quantity.toLocaleString('en-ZA')} pads (${(req.packs ?? Math.floor(req.quantity / 10)).toLocaleString('en-ZA')} packs of 10)`,
-    `Price wanted per pad: ${formatRand(req.targetUnitPriceCents)}`,
-    `Price wanted per pack of 10: ${formatRand(req.targetPackPriceCents)}`,
-    `Estimated selling price: ${formatRand(req.targetTotalCents)}`,
-    `Our indicative price per pad: ${formatRand(req.unitPriceCents)} (total ${formatRand(req.totalCents)})`,
-    `Packaging required: ${yesNo(req.packaging)}`,
-    `Delivery required: ${yesNo(req.delivery)}`,
-    `Requirement: ${getLeadType(req.leadType)?.label || ''}`,
-  ].join('\n');
-}
-
-/** Internal notification for the sales team (sent once an email transport is configured). */
-function buildInternalNotification(lead) {
-  const c = lead.contact;
-  return {
-    subject: `New website enquiry ${lead.id}`,
-    text: [
-      `Lead reference: ${lead.id}`,
-      `Submitted: ${lead.submittedAt}`,
-      '',
-      `Name: ${c.fullName}`,
-      `Company: ${c.company || '-'}`,
-      `Location: ${c.location}`,
-      `Email: ${c.email}`,
-      `Phone: ${c.phone || '-'}`,
-      `WhatsApp follow-up permitted: ${yesNo(c.whatsappConsent)}`,
-      '',
-      describeRequirements(lead),
-    ].join('\n'),
-  };
-}
-
-/** Acknowledgement for the customer. It must not read as an order or booking confirmation. */
-function buildCustomerAcknowledgement(lead) {
-  return {
-    subject: `PureLine Hygiene enquiry ${lead.id} received`,
-    text: [
-      `Dear ${lead.contact.fullName},`,
-      '',
-      'Thank you for choosing PureLine Hygiene. Your enquiry has been received and will be reviewed by our team.',
-      `Your reference number is ${lead.id}.`,
-      '',
-      'This is not a confirmed order or booking. We will contact you regarding your requirements.',
-      '',
-      describeRequirements(lead),
-    ].join('\n'),
-  };
-}
+const {
+  DEFAULT_BUSINESS_EMAIL,
+  REGISTER_COLUMNS,
+  toLeadRegisterRow,
+  describeRequirements,
+  buildInternalNotification,
+  buildCustomerAcknowledgement,
+} = require('../../shared/lead-messages');
 
 /** wa.me link with the reference prefilled. Only for the official WhatsApp Business number. */
 function buildWhatsAppLink(businessNumber, reference) {
@@ -107,10 +34,30 @@ function createNotifier({ env = process.env, logger = console, fetchImpl = globa
   const appsScriptUrl = env.APPS_SCRIPT_WEBHOOK_URL || '';
   const appsScriptSecret = env.APPS_SCRIPT_SHARED_SECRET || '';
   const sheetsEnabled = Boolean(appsScriptUrl && appsScriptSecret);
+  const businessEmail = env.BUSINESS_EMAIL || DEFAULT_BUSINESS_EMAIL;
+
+  /**
+   * Emails for a submitted enquiry. The Apps Script sends them from the business Google account
+   * (MailApp), so no mail-server credentials are kept on this server.
+   */
+  function emailsFor(event, lead) {
+    if (event !== 'lead.submitted' || !lead.contact) return [];
+    const internal = buildInternalNotification(lead);
+    const ack = buildCustomerAcknowledgement(lead, businessEmail);
+    return [
+      { to: businessEmail, replyTo: lead.contact.email, subject: internal.subject, text: internal.text },
+      { to: lead.contact.email, replyTo: businessEmail, subject: ack.subject, text: ack.text },
+    ];
+  }
 
   async function sendToLeadRegister(event, lead) {
     // Apps Script web apps cannot read request headers, so the HMAC signature travels in the body.
-    const payload = JSON.stringify({ event, sentAt: new Date().toISOString(), row: toLeadRegisterRow(lead) });
+    const payload = JSON.stringify({
+      event,
+      sentAt: new Date().toISOString(),
+      row: toLeadRegisterRow(lead),
+      emails: emailsFor(event, lead),
+    });
     const response = await fetchImpl(appsScriptUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -121,7 +68,8 @@ function createNotifier({ env = process.env, logger = console, fetchImpl = globa
 
   return {
     status() {
-      return { googleSheets: sheetsEnabled, email: false, whatsapp: false };
+      // Email goes out through the Apps Script, so it is live once the lead register is configured.
+      return { googleSheets: sheetsEnabled, email: sheetsEnabled, businessEmail, whatsapp: false };
     },
 
     /** Called after a lead is saved. Failures are logged and never undo the saved lead. */
@@ -133,8 +81,7 @@ function createNotifier({ env = process.env, logger = console, fetchImpl = globa
           logger.error(`[integrations] lead register update failed for ${lead.id}: ${error.message}`);
         }
       }
-      // Email: wire buildInternalNotification / buildCustomerAcknowledgement to the business mail
-      // provider once the official address and credentials exist.
+      // Email: sent by the Apps Script with the lead register update (see emailsFor).
       // WhatsApp: automated messages require an approved WhatsApp Business integration and the
       // customer's whatsappConsent. Until then, staff follow up manually using buildWhatsAppLink.
     },
@@ -148,4 +95,7 @@ module.exports = {
   buildWhatsAppLink,
   signPayload,
   createNotifier,
+  DEFAULT_BUSINESS_EMAIL,
+  REGISTER_COLUMNS,
+  describeRequirements,
 };

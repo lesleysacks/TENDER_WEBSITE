@@ -14,6 +14,8 @@
  *   ALLOWED_ORIGINS            comma-separated extra origins allowed to call the API
  *   NODE_ENV                   "production" disables the VS Code Live Server origins (ports 5500/5501)
  *   DRAFT_RETENTION_DAYS       unsubmitted drafts are deleted after this many days (default 30)
+ *   BUSINESS_EMAIL             business contact address; receives enquiry notifications
+ *                              (default Nextgeneration.ai7.0@gmail.com)
  *   APPS_SCRIPT_WEBHOOK_URL    future Google Apps Script lead register endpoint
  *   APPS_SCRIPT_SHARED_SECRET  HMAC secret shared with that Apps Script (server-side only)
  */
@@ -57,6 +59,7 @@ async function main() {
     turnstile,
     trustProxy: env.TRUST_PROXY === 'cloudflare' ? 'cloudflare' : env.TRUST_PROXY === 'true',
     allowedOrigins: allowedOrigins(),
+    hsts: env.NODE_ENV === 'production',
   });
 
   const port = Number(env.PORT || 8000);
@@ -76,7 +79,8 @@ async function main() {
     console.log(`PureLine Hygiene website running at http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`);
     console.log(
       `Integrations — Google Sheets: ${integrations.googleSheets ? 'on' : 'not configured'}, ` +
-        `email: not configured, WhatsApp: not configured`
+        `email to ${integrations.businessEmail}: ${integrations.email ? 'on (via Apps Script)' : 'off until the Apps Script is configured'}, ` +
+        `WhatsApp: not configured`
     );
     console.log(`Spam protection — rate limits: on, Turnstile: ${turnstile.enabled ? 'on' : 'off (set TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY)'}, proxy IPs: ${env.TRUST_PROXY || 'not trusted'}`);
   });
