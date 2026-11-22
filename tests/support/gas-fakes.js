@@ -35,12 +35,28 @@ const newId = (prefix) => `${prefix}${(idCounter += 1).toString(36)}${crypto.ran
 
 // ---------------------------------------------------------------- Sheets
 
+/** "G3:K9" -> [row, col, rows, cols] */
+function a1ToGrid(a1) {
+  const cell = (ref) => {
+    const [, letters, digits] = /^([A-Z]+)(\d+)$/.exec(ref);
+    const col = [...letters].reduce((n, ch) => n * 26 + ch.charCodeAt(0) - 64, 0);
+    return [Number(digits), col];
+  };
+  const [start, end = start] = a1.split(':');
+  const [r1, c1] = cell(start);
+  const [r2, c2] = cell(end);
+  return [r1, c1, r2 - r1 + 1, c2 - c1 + 1];
+}
+
 class FakeRange {
   constructor(sheet, row, col, rows, cols) {
     Object.assign(this, { sheet, row, col, rows, cols });
     return chainable(this);
   }
   getRow() { return this.row; }
+  offset(rowOffset, colOffset, rows = this.rows, cols = this.cols) {
+    return new FakeRange(this.sheet, this.row + rowOffset, this.col + colOffset, rows, cols);
+  }
   getValues() {
     const out = [];
     for (let r = 0; r < this.rows; r += 1) {
@@ -67,6 +83,7 @@ class FakeSheet {
     this.id = Math.floor(Math.random() * 1e9);
     this.raw = []; // values as written (including a leading apostrophe that Sheets hides)
     this.filter = null;
+    this.charts = [];
     this.activeRow = 2;
     return chainable(this);
   }
@@ -89,7 +106,18 @@ class FakeSheet {
   getLastColumn() { return Math.max(0, ...this.raw.map((line) => line.length)); }
   getMaxRows() { return Math.max(1000, this.raw.length); }
   getMaxColumns() { return Math.max(26, this.getLastColumn()); }
-  getRange(row, col, rows = 1, cols = 1) { return new FakeRange(this, row, col, rows, cols); }
+  getRange(row, col, rows = 1, cols = 1) {
+    if (typeof row === 'string') return new FakeRange(this, ...a1ToGrid(row));
+    return new FakeRange(this, row, col, rows, cols);
+  }
+  newChart() {
+    const ranges = [];
+    const builder = chainable({ addRange(range) { ranges.push(range); return builder; }, build: () => ({ ranges }) });
+    return builder;
+  }
+  insertChart(chart) { this.charts.push(chart); }
+  getCharts() { return this.charts.slice(); }
+  removeChart(chart) { this.charts = this.charts.filter((c) => c !== chart); }
   appendRow(values) { const row = this.getLastRow() + 1; values.forEach((v, i) => this.write(row, i + 1, v)); return this; }
   deleteRow(row) { this.raw.splice(row - 1, 1); return this; }
   clear() { this.raw = []; return this; }
@@ -249,6 +277,7 @@ function loadAppsScript({ ownerEmail = 'owner@example.com', code = fs.readFileSy
       newTrigger: (name) => chainable({ create: () => { triggers.push(name); } }),
     },
     DriveApp: drive.DriveApp,
+    Charts: { ChartType: enumProxy },
     DocumentApp: {
       ParagraphHeading: enumProxy,
       GlyphType: enumProxy,

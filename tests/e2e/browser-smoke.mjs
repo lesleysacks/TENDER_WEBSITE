@@ -43,6 +43,19 @@ const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plh-e2e-'));
 const store = await new FileLeadStore(path.join(dataDir, 'leads.json')).init();
 const leadService = createLeadService({ store, notifier: { leadEvent: async () => {} } });
 const server = createApp({ rootDir: ROOT, leadService });
+// This journey tests the Node API. js/site-config.js may point leadsEndpoint at the live Google Apps
+// Script, so serve a copy with it blanked (the Apps Script path has its own tests).
+const [appHandler] = server.listeners('request');
+server.removeAllListeners('request');
+server.on('request', (req, res) => {
+  if (req.url.split('?')[0] === '/js/site-config.js') {
+    const source = fs.readFileSync(path.join(ROOT, 'js', 'site-config.js'), 'utf8').replace(/leadsEndpoint:\s*'[^']*'/, "leadsEndpoint: ''");
+    res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(source);
+    return;
+  }
+  appHandler(req, res);
+});
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 const BASE = `http://127.0.0.1:${server.address().port}`;
 

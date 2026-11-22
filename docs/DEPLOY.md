@@ -28,8 +28,9 @@ it is the business account. The account needs free Google storage: Sheets and Do
    Docs, Gmail and email sending). Setup builds:
    - a **PureLine Hygiene** folder with the Sheet in it, plus `Templates/` (Quotation template, Email reply
      templates), `Quotes/` and a **START HERE – admin links** document;
-   - the Sheet tabs: **Dashboard** (quick links, counts, totals, latest enquiries), **Leads**, **Settings**,
-     **How to use**.
+   - the Sheet tabs: **Dashboard** (quick links, counts, totals, latest enquiries and 6 charts: status,
+     customer type, enquiries and pads per month, delivery vs collection, stickers vs plain packs),
+     **Leads**, **Settings**, **How to use** and **Chart data** (the live formulas the charts read).
 4. On the **Settings** tab, check the *Notification email* and fill in the company and bank details for
    quotations.
 5. **Deploy → New deployment →** type **Web app**. Set *Execute as*: **Me**, *Who has access*: **Anyone**.

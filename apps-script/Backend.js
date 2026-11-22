@@ -14,7 +14,7 @@
 
 /* global PureLinePricing, PureLineLeadSchema, PureLineLeadMessages, SpreadsheetApp, LockService,
    CacheService, PropertiesService, Utilities, MailApp, GmailApp, DriveApp, DocumentApp, Session,
-   ContentService, UrlFetchApp, ScriptApp, Logger */
+   ContentService, UrlFetchApp, ScriptApp, Charts, Logger */
 
 var P = PureLinePricing;
 var S = PureLineLeadSchema;
@@ -22,7 +22,7 @@ var M = PureLineLeadMessages;
 
 var CONFIG = {
   FOLDER_NAME: 'PureLine Hygiene',
-  SHEETS: { dashboard: 'Dashboard', leads: 'Leads', settings: 'Settings', help: 'How to use' },
+  SHEETS: { dashboard: 'Dashboard', leads: 'Leads', settings: 'Settings', help: 'How to use', chartData: 'Chart data' },
   WEBSITE_URL: 'https://pureline-sable.vercel.app',
   MAX_BODY_CHARS: 16 * 1024,
   DRAFT_RETENTION_DAYS: 30,
@@ -773,6 +773,7 @@ function setup() {
   var settings = ensureSheet_(ss, tabs.settings, 2);
   var help = ensureSheet_(ss, tabs.help, 3);
   var dashboard = ensureSheet_(ss, tabs.dashboard, 0);
+  var chartData = ensureSheet_(ss, tabs.chartData, 99); // last tab
   setupLeadsSheet_(leads);
   setupSettingsSheet_(settings);
   setupHelpSheet_(help);
@@ -801,6 +802,8 @@ function setup() {
   var startHere = ensureDoc_(props, 'START_HERE_ID', 'START HERE – admin links', folder, function (doc) { buildStartHereDoc_(doc, links); });
   links.startHere = startHere.getUrl();
   setupDashboard_(dashboard, links);
+  setupChartData_(chartData);
+  setupCharts_(dashboard, chartData);
   dashboard.activate();
 
   // ---- Daily clean-up of abandoned drafts ----
@@ -936,12 +939,13 @@ function setupHelpSheet_(sheet) {
     ['Quotation', 'Click a submitted lead row, then PureLine menu → Create quotation for selected lead. It is saved in the Quotes folder.'],
     ['Email replies', 'Click a lead row, then PureLine menu → Draft email reply. A Gmail draft is created for you to check and send; nothing is sent automatically.'],
     ['Settings', 'Company details, banking details and the notification email live on the Settings tab.'],
+    ['Dashboard charts', 'The Dashboard charts update by themselves from the Leads tab (via the "Chart data" tab). Drafts are not counted.'],
   ];
   sheet.clear();
   sheet.getRange(1, 1, rows.length, 2).setValues(rows);
   sheet.getRange(1, 1).setFontSize(14).setFontWeight('bold');
   sheet.getRange(3, 1, 1, 2).setFontWeight('bold').setBackground(BRAND.ink).setFontColor('#ffffff');
-  sheet.getRange(12, 1, 5, 1).setFontWeight('bold');
+  sheet.getRange(12, 1, 6, 1).setFontWeight('bold');
   sheet.setColumnWidth(1, 180);
   sheet.setColumnWidth(2, 640);
   sheet.getRange(1, 2, rows.length, 1).setWrap(true);
@@ -998,6 +1002,103 @@ function setupDashboard_(sheet, links) {
   sheet.setColumnWidth(4, 140);
   sheet.setHiddenGridlines(true);
   sheet.setTabColor(BRAND.teal);
+}
+
+// ---- Charts: the Dashboard charts read from live formulas on the "Chart data" tab ----
+
+var CHART_COLORS = ['#2f6f68', '#d9a441', '#14232a', '#9fd8cf', '#b5472f', '#7a8c8f'];
+
+/** Cell blocks on "Chart data" (row 3 headers, data below). Shared by setupChartData_ and setupCharts_. */
+var CHART_BLOCKS = {
+  status: { range: 'A3:B9' },
+  type: { range: 'D3:E7' },
+  monthly: { range: 'G3:K9' },
+  delivery: { range: 'M3:N5' },
+  stickers: { range: 'P3:Q5' },
+};
+
+function chartDataRows_() {
+  var L = "'" + CONFIG.SHEETS.leads + "'!";
+  var notDraft = L + 'B:B,"<>Draft",' + L + 'A:A,"<>"';
+  var statuses = ['Submitted', 'Under Review', 'Contacted', 'Quoted', 'Won', 'Lost'];
+  var types = ['Tender', 'Preparation', 'Organisation', 'Bulk'];
+  var blocks = {};
+  blocks.status = [['Status', 'Enquiries']].concat(statuses.map(function (label, i) {
+    return [label, '=COUNTIF(' + L + 'B:B,A' + (4 + i) + ')'];
+  }));
+  blocks.type = [['Customer type', 'Enquiries']].concat(types.map(function (label, i) {
+    return [label, '=COUNTIFS(' + L + 'K:K,D' + (4 + i) + ',' + notDraft + ')'];
+  }));
+  blocks.monthly = [['Month', 'Enquiries', 'Pads requested', 'Value (customer prices)', 'Value (our prices)']];
+  for (var m = 0; m < 6; m += 1) {
+    var row = 4 + m;
+    var inMonth = L + 'C:C,">="&G' + row + ',' + L + 'C:C,"<"&(EOMONTH(G' + row + ',0)+1),' + notDraft;
+    blocks.monthly.push([
+      '=EOMONTH(TODAY(),' + (m - 6) + ')+1',
+      '=COUNTIFS(' + inMonth + ')',
+      '=SUMIFS(' + L + 'L:L,' + inMonth + ')',
+      '=SUMIFS(' + L + 'Q:Q,' + inMonth + ')',
+      '=SUMIFS(' + L + 'S:S,' + inMonth + ')',
+    ]);
+  }
+  blocks.delivery = [['Delivery', 'Enquiries'],
+    ['Delivery', '=COUNTIFS(' + L + 'V:V,"Deliver",' + notDraft + ')'],
+    ['Collection', '=COUNTIFS(' + L + 'V:V,"Collect",' + notDraft + ')']];
+  blocks.stickers = [['Packaging', 'Enquiries'],
+    ['Stickers/decals', '=COUNTIFS(' + L + 'U:U,"Yes",' + notDraft + ')'],
+    ['Plain white packs', '=COUNTIFS(' + L + 'U:U,"No",' + notDraft + ')']];
+  return blocks;
+}
+
+function setupChartData_(sheet) {
+  var blocks = chartDataRows_();
+  sheet.clear();
+  sheet.getRange(1, 1).setValue('Chart data – do not edit. The Dashboard charts read from these live formulas (drafts are not counted).');
+  sheet.getRange(1, 1).setFontWeight('bold').setFontColor('#777777');
+  Object.keys(CHART_BLOCKS).forEach(function (key) {
+    var range = sheet.getRange(CHART_BLOCKS[key].range);
+    range.setValues(blocks[key]);
+    range.offset(0, 0, 1).setFontWeight('bold').setBackground(BRAND.ink).setFontColor('#ffffff');
+  });
+  sheet.getRange('G4:G9').setNumberFormat('mmm yyyy');
+  sheet.getRange('I4:I9').setNumberFormat('#,##0');
+  sheet.getRange('J4:K9').setNumberFormat('"R"#,##0.00');
+  sheet.setTabColor('#999999');
+}
+
+function setupCharts_(dashboard, data) {
+  dashboard.getCharts().forEach(function (chart) { dashboard.removeChart(chart); });
+  var place = [[4, 9], [4, 15], [18, 9], [18, 15], [32, 9], [32, 15]];
+  var common = function (builder, title, index) {
+    return builder
+      .setPosition(place[index][0], place[index][1], 0, 0)
+      .setOption('title', title)
+      .setOption('titleTextStyle', { color: BRAND.ink, fontSize: 14, bold: true })
+      .setOption('width', 440)
+      .setOption('height', 270)
+      .setOption('colors', CHART_COLORS)
+      .setNumHeaders(1);
+  };
+  var pie = function (range, title, index) {
+    return common(dashboard.newChart().setChartType(Charts.ChartType.PIE).addRange(data.getRange(range)), title, index)
+      .setOption('pieHole', 0.45)
+      .setOption('legend', { position: 'right' })
+      .setOption('sliceVisibilityThreshold', 0)
+      .build();
+  };
+  var columns = function (ranges, title, index) {
+    var builder = dashboard.newChart().setChartType(Charts.ChartType.COLUMN);
+    ranges.forEach(function (range) { builder.addRange(data.getRange(range)); });
+    return common(builder, title, index).setOption('legend', { position: 'none' }).build();
+  };
+  [
+    pie('A3:B9', 'Enquiries by status', 0),
+    pie('D3:E7', 'Enquiries by customer type', 1),
+    columns(['G3:G9', 'H3:H9'], 'Enquiries per month', 2),
+    columns(['G3:G9', 'I3:I9'], 'Pads requested per month', 3),
+    pie('M3:N5', 'Delivery or collection', 4),
+    pie('P3:Q5', 'Stickers/decals or plain packs', 5),
+  ].forEach(function (chart) { dashboard.insertChart(chart); });
 }
 
 // ---- Template documents ----

@@ -29,7 +29,7 @@ test('the committed Code.gs matches the sources (run npm run build:apps-script a
 
 test('setup builds the tabs, the Leads columns, settings, templates and the daily clean-up', () => {
   const t = ready();
-  assert.deepEqual(t.spreadsheet.getSheets().map((s) => s.getName()), ['Dashboard', 'Leads', 'Settings', 'How to use']);
+  assert.deepEqual(t.spreadsheet.getSheets().map((s) => s.getName()), ['Dashboard', 'Leads', 'Settings', 'How to use', 'Chart data']);
   assert.deepEqual(t.leads.raw[0].slice(0, M.REGISTER_COLUMNS.length), M.REGISTER_COLUMNS);
   assert.equal(t.spreadsheet.getSheetByName('Settings').rowObject(2).Setting, 'Notification email');
   assert.equal(t.spreadsheet.getSheetByName('Settings').cell(2, 2), 'admin@example.com', 'notifications go to the account that runs setup');
@@ -41,6 +41,18 @@ test('setup builds the tabs, the Leads columns, settings, templates and the dail
   assert.match(String(dashboard.cell(5, 1)), /^=HYPERLINK\(/);
   assert.match(String(dashboard.cell(5, 4)), /COUNTIF\('Leads'!B:B,"Submitted"\)/);
 
+  // Dashboard charts read live formulas on the Chart data tab
+  const data = t.spreadsheet.getSheetByName('Chart data');
+  assert.equal(data.cell(3, 1), 'Status');
+  assert.equal(data.cell(4, 1), 'Submitted');
+  assert.equal(data.cell(4, 2), "=COUNTIF('Leads'!B:B,A4)");
+  assert.equal(data.cell(3, 7), 'Month');
+  assert.match(String(data.cell(4, 9)), /^=SUMIFS\('Leads'!L:L,'Leads'!C:C,">="&G4/);
+  assert.equal(data.cell(5, 16), 'Plain white packs');
+  assert.equal(dashboard.getCharts().length, 6);
+  assert.deepEqual(dashboard.getCharts().map((c) => c.ranges.map((r) => `${r.row},${r.col},${r.rows},${r.cols}`).join(' ')),
+    ['3,1,7,2', '3,4,5,2', '3,7,7,1 3,8,7,1', '3,7,7,1 3,9,7,1', '3,13,3,2', '3,16,3,2']);
+
   // Running setup again keeps data and does not add a second trigger or new documents.
   const ids = [...t.properties.values()].join();
   t.post({ action: 'create', requirements: REQUIREMENTS });
@@ -48,6 +60,7 @@ test('setup builds the tabs, the Leads columns, settings, templates and the dail
   assert.equal(t.leads.getLastRow(), 2);
   assert.deepEqual(t.triggers, ['purgeDrafts']);
   assert.equal([...t.properties.values()].join(), ids);
+  assert.equal(dashboard.getCharts().length, 6, 'charts are replaced, not duplicated');
 });
 
 test('draft → update → submit, with prices recalculated and both emails sent once', () => {
