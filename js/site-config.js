@@ -18,12 +18,12 @@ window.PURELINE_CONFIG = Object.freeze({
     logistics: '', // e.g. 'assets/photography/logistics-fleet.webp'
     product: 'assets/photography/product-pads.webp',
     tiers: Object.freeze({
-      individual: '',
-      'small-packs': '',
+      individual: 'assets/photography/individual-pads.webp',
+      'small-packs': 'assets/photography/small-packs.webp',
       'multiple-packs': 'assets/photography/multiple-packs.webp',
-      'bulk-packaging': '',
+      'bulk-packaging': 'assets/photography/bulk-packaging.webp',
       pallet: 'assets/photography/pallets.webp',
-      'large-scale': '',
+      'large-scale': 'assets/photography/large-scale.webp',
     }),
   }),
 });

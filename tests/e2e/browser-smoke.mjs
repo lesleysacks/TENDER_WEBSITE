@@ -217,6 +217,7 @@ try {
   check('gallery expands', (await evaluate('document.querySelector("[data-gallery-toggle]").getAttribute("aria-expanded")')) === 'true'
     && !(await evaluate('document.querySelector("[data-gallery-region]").hidden'))
     && (await evaluate('document.querySelectorAll("[data-gallery-tier]").length')) === 6);
+  check('every supply volume in the gallery shows a photo', await waitFor('(() => { const imgs = [...document.querySelectorAll("[data-gallery-tier] img")]; return imgs.length === 6 && imgs.every(i => i.complete && i.naturalWidth > 0); })()'));
   await click('[data-gallery-tier="multiple-packs"]');
   check('gallery item sets the quantity', (await evaluate('document.querySelector("[data-qty-input]").value')) === '10,000');
   check('product panel shows the supplied photo', await evaluate('(() => { const i = document.querySelector("[data-visual-product] img"); return !!i && /product-pads\\.webp/.test(i.src); })()'));
