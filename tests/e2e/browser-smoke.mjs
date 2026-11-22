@@ -248,9 +248,15 @@ try {
   await type('[data-req="deliveryPoint"]', 'Polokwane district depot');
   await click('[data-save-draft]');
   check('qualifying answer is required before saving', /Choose what best describes you/.test(await text('[data-stage1-error]')) && store.list().length === 0);
+  check('missing Step 1: reminder by the Save button and the card is highlighted', (await evaluate('document.querySelector("[data-step1-status]").dataset.state')) === 'missing'
+    && /Step 1 is not answered yet/.test(await text('[data-step1-status]'))
+    && await evaluate('document.getElementById("lead-type").classList.contains("needs-answer")'));
+  check('missing Step 1: the page takes the customer to the question', await waitFor('(() => { const r = document.getElementById("lead-type").getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight && document.activeElement.name === "leadType"; })()', 3000));
   check('progress starts at 0%', /^0%/.test(await text('[data-progress-text]')));
 
   await click('input[name="leadType"][value="tender-secured"]');
+  check('answered Step 1 shows next to Save', (await evaluate('document.querySelector("[data-step1-status]").dataset.state')) === 'done'
+    && (await text('[data-step1-answer]')) === 'Secured a tender');
   await click('[data-save-draft]');
   check('stage 1 saves a draft and shows stage 2', await waitFor('!document.querySelector("[data-stage2]").hidden'));
   check('green "Requirements saved — 50% complete" note after Save and continue', !(await evaluate('document.querySelector("[data-stage1-success]").hidden')) && /Requirements saved — 50% complete/.test(await text('[data-stage1-success]')));

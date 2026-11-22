@@ -14,7 +14,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="css/styles.css?v=25" />
+    <link rel="stylesheet" href="css/styles.css?v=26" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -62,7 +62,7 @@
             </div>
             <!-- Qualifying question: part of the enquiry, asked up front -->
             <fieldset class="hero-qualify" id="lead-type">
-              <legend><span class="hero-step">Step 1</span><span class="hero-question">Which describes you?</span><span class="hero-choose">Choose one</span></legend>
+              <legend><span class="hero-step">Step 1</span><span class="hero-required">Required</span><span class="hero-question">Which describes you?</span><span class="hero-choose">Choose one</span></legend>
               <div class="hero-options">
                 <label class="hero-option"><input type="radio" name="leadType" value="tender-secured" /><span>Secured a tender</span></label>
                 <label class="hero-option"><input type="radio" name="leadType" value="tender-preparing" /><span>Preparing a tender</span></label>
@@ -259,6 +259,18 @@
 
           <!-- Save requirements as a draft (50%) -->
           <section class="est-step save-bar" data-stage1 aria-label="Save your requirements">
+            <!-- Reminder of the Step 1 answer (asked at the top of the page) right before saving -->
+            <div class="step1-status" data-step1-status data-state="missing" aria-live="polite">
+              <p class="step1-missing">
+                <span class="step1-icon" aria-hidden="true">!</span>
+                <span><strong>Step 1 is not answered yet.</strong> Tell us which describes you before saving.</span>
+              </p>
+              <p class="step1-done">
+                <span class="step1-icon" aria-hidden="true">✓</span>
+                <span>Step 1: <strong data-step1-answer></strong></span>
+              </p>
+              <button class="btn-link step1-go" type="button" data-step1-go><span data-step1-go-label>Answer Step 1 now</span> <span aria-hidden="true">↑</span></button>
+            </div>
             <div class="stage1-actions">
               <button class="btn btn-primary" type="button" data-save-draft><span data-label>Save and continue</span></button>
               <p class="hint">Saved as a draft. No login needed.</p>
@@ -374,14 +386,14 @@
       </div>
     </footer>
 
-    <script src="shared/quantity.js?v=25"></script>
-    <script src="shared/pricing.js?v=25"></script>
-    <script src="shared/lead-schema.js?v=25"></script>
-    <script src="js/site-config.js?v=25"></script>
-    <script src="js/visual-tiers.js?v=25"></script>
-    <script src="js/illustrations.js?v=25"></script>
-    <script src="js/site.js?v=25"></script>
-    <script src="js/estimator.js?v=25"></script>
-    <script src="js/lead-funnel.js?v=25"></script>
+    <script src="shared/quantity.js?v=26"></script>
+    <script src="shared/pricing.js?v=26"></script>
+    <script src="shared/lead-schema.js?v=26"></script>
+    <script src="js/site-config.js?v=26"></script>
+    <script src="js/visual-tiers.js?v=26"></script>
+    <script src="js/illustrations.js?v=26"></script>
+    <script src="js/site.js?v=26"></script>
+    <script src="js/estimator.js?v=26"></script>
+    <script src="js/lead-funnel.js?v=26"></script>
   </body>
 </html>

@@ -250,6 +250,37 @@
     els.summary('leadType').textContent = S.getLeadType(requirements.leadType)?.label || '—';
   }
 
+  // ---------- Step 1 ("Which describes you?") lives in the hero: keep a reminder by the Save button ----------
+
+  const step1 = {
+    card: document.getElementById('lead-type'),
+    status: $('[data-step1-status]'),
+    answer: $('[data-step1-answer]'),
+    go: $('[data-step1-go]'),
+    goLabel: $('[data-step1-go-label]'),
+  };
+
+  function renderStep1Status() {
+    if (!step1.status) return;
+    const checked = els.leadTypes.find((input) => input.checked);
+    step1.status.dataset.state = checked ? 'done' : 'missing';
+    if (checked) step1.answer.textContent = checked.closest('label').textContent.trim();
+    step1.goLabel.textContent = checked ? 'Change' : 'Answer Step 1 now';
+  }
+
+  /** Scrolls to the Step 1 card, highlights it and puts keyboard focus on the first option. */
+  function goToStep1(highlight) {
+    if (!step1.card) return;
+    step1.card.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'center' });
+    if (highlight) {
+      step1.card.classList.remove('needs-answer');
+      void step1.card.offsetWidth; // restart the nudge
+      step1.card.classList.add('needs-answer');
+    }
+    const target = els.leadTypes.find((input) => input.checked) || els.leadTypes[0];
+    setTimeout(() => target && target.focus({ preventScroll: true }), prefersReducedMotion() ? 0 : 450);
+  }
+
   function showStage1Error(message, focusTarget) {
     els.stage1Error.textContent = message;
     els.stage1Error.hidden = !message;
@@ -264,13 +295,9 @@
     if (!check.ok) {
       if (check.errors.quantity) return showStage1Error(check.errors.quantity, $('[data-qty-input]'));
       if (check.errors.leadType) {
-        const card = document.getElementById('lead-type');
-        if (card) {
-          card.classList.remove('needs-answer');
-          void card.offsetWidth; // restart the nudge
-          card.classList.add('needs-answer');
-        }
-        return showStage1Error('Choose what best describes you in Step 1 at the top of the page, then save again.', els.leadTypes[0]);
+        showStage1Error('Choose what best describes you in Step 1 (we have taken you there), then save again.');
+        goToStep1(true);
+        return;
       }
       if (check.errors.deliveryPoint) return showStage1Error(check.errors.deliveryPoint, $('[data-req="deliveryPoint"]'));
       return showStage1Error('Please check your selections.');
@@ -508,6 +535,7 @@
     input.addEventListener('change', () => {
       showStage1Error('');
       document.getElementById('lead-type')?.classList.remove('needs-answer');
+      renderStep1Status();
       scheduleSync();
     })
   );
@@ -538,6 +566,7 @@
       els.leadTypes.forEach((input) => {
         input.checked = input.value === lead.requirements.leadType;
       });
+      renderStep1Status();
       enterDraftStage(lead);
       pendingSync = false;
     } catch (error) {
@@ -545,6 +574,8 @@
     }
   }
 
+  step1.go?.addEventListener('click', () => goToStep1(false));
+  renderStep1Status();
   restore();
   initTurnstile();
 })();
