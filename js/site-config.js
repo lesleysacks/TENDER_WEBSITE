@@ -16,11 +16,11 @@ window.PURELINE_CONFIG = Object.freeze({
   // Authentic photography. Leave a path empty to keep the drawn illustration in its place.
   photography: Object.freeze({
     logistics: '', // e.g. 'assets/photography/logistics-fleet.webp'
-    product: '', // e.g. 'assets/photography/product-pad.webp'
+    product: 'assets/photography/product-pads.webp',
     tiers: Object.freeze({
       individual: '',
       'small-packs': '',
-      'multiple-packs': '',
+      'multiple-packs': 'assets/photography/multiple-packs.webp',
       'bulk-packaging': '',
       pallet: '',
       'large-scale': '',

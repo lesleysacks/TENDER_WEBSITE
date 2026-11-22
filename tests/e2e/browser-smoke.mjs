@@ -218,6 +218,8 @@ try {
     && (await evaluate('document.querySelectorAll("[data-gallery-tier]").length')) === 6);
   await click('[data-gallery-tier="multiple-packs"]');
   check('gallery item sets the quantity', (await evaluate('document.querySelector("[data-qty-input]").value')) === '10,000');
+  check('product panel shows the supplied photo', await evaluate('(() => { const i = document.querySelector("[data-visual-product] img"); return !!i && /product-pads\\.webp/.test(i.src); })()'));
+  check('multiple packs shows the supplied photo', await waitFor('(() => { const i = document.querySelector("[data-visual-tier] img"); return !!i && /multiple-packs\\.webp/.test(i.src) && i.complete && i.naturalWidth > 0; })()'));
   await screenshot('desktop-estimator-gallery');
   await click('[data-gallery-toggle]');
 

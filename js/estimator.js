@@ -326,7 +326,7 @@
   // ---------- Initial render ----------
 
   els.product.innerHTML = photos.product
-    ? `<img src="${photos.product}" alt="PureLine Hygiene sanitary pad" loading="lazy" decoding="async" />`
+    ? `<img src="${photos.product}" alt="PureLine Hygiene sanitary pads, individually wrapped" loading="lazy" decoding="async" />`
     : art.productIllustration();
   buildGallery();
   setGalleryOpen(false);
