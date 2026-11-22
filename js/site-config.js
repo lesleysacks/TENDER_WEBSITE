@@ -22,7 +22,7 @@ window.PURELINE_CONFIG = Object.freeze({
       'small-packs': '',
       'multiple-packs': 'assets/photography/multiple-packs.webp',
       'bulk-packaging': '',
-      pallet: '',
+      pallet: 'assets/photography/pallets.webp',
       'large-scale': '',
     }),
   }),

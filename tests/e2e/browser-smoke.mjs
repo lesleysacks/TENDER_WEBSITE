@@ -199,6 +199,7 @@ try {
     && /below our current price/.test(await text('[data-cost-compare]')));
   await type('[data-price-input]', '0.30');
   check('visualiser shows the pallet tier', (await evaluate('document.querySelector("[data-visual-tier]").dataset.tier')) === 'pallet');
+  check('pallet tier shows the supplied photo', await waitFor('(() => { const i = document.querySelector("[data-visual-tier] img"); return !!i && /pallets\\.webp/.test(i.src) && i.complete && i.naturalWidth > 0; })()'));
   check('cost estimator contains no imagery', (await evaluate('document.querySelector("#cost-title").closest("section").querySelectorAll("img,svg").length')) === 0);
 
   await evaluate('(() => { const r = document.querySelector("[data-qty-range]"); r.value = "1000"; r.dispatchEvent(new Event("input", { bubbles: true })); })()');
