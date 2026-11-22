@@ -383,6 +383,8 @@ section[tabindex="-1"]:focus { outline: none; }
 /* Confirmation */
 .confirmation { border-top: 4px solid var(--success); }
 .confirm-message { max-width: 44rem; font-size: 1.1rem; }
+.confirm-contact { color: var(--ink-2); }
+.confirm-contact a { color: var(--teal-dark); font-weight: 600; overflow-wrap: anywhere; }
 .confirm-message strong { color: var(--teal-dark); font-size: 1.15rem; white-space: nowrap; }
 
 /* Logistics scene (hero background illustration) */
@@ -422,6 +424,14 @@ section[tabindex="-1"]:focus { outline: none; }
 .l-jack-handle { stroke: #0e1a1f; stroke-width: 5; stroke-linecap: round; }
 .l-scooter { fill: var(--teal); }
 .l-courier-box { fill: #f1efe8; }
+.l-worker-leg { fill: none; stroke: #1d3a4a; stroke-width: 9; stroke-linecap: round; }
+.l-worker-boot { fill: none; stroke: #0e1a1f; stroke-width: 7; stroke-linecap: round; }
+.l-worker-shirt { fill: #2d5566; }
+.l-worker-vest { fill: #e9b03a; }
+.l-worker-stripe { fill: none; stroke: #f1efe8; stroke-width: 3; }
+.l-worker-arm { fill: none; stroke: #2d5566; stroke-width: 8; stroke-linecap: round; }
+.l-worker-skin { fill: #8a5a3c; }
+.l-worker-cap { fill: var(--teal); }
 
 /* FAQ accordions */
 .faq-list { border-top: 1px solid var(--line); }
@@ -436,7 +446,11 @@ section[tabindex="-1"]:focus { outline: none; }
 .faq-list details p { max-width: 46rem; margin: 0 0 1.25rem 1.9rem; color: var(--muted); }
 
 /* Footer */
-.site-footer { padding: 1.75rem 0; background: var(--ink); color: #c5d2ce; font-size: 0.8rem; letter-spacing: 0.22em; text-align: center; }
+.site-footer { padding: 1.75rem 0; background: var(--ink); color: #c5d2ce; font-size: 0.8rem; }
+.footer-inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem 2rem; }
+.footer-brand { letter-spacing: 0.22em; }
+.footer-email { color: var(--aqua); font-size: 0.9rem; text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; overflow-wrap: anywhere; }
+.footer-email:hover { color: #fff; }
 
 /* ---------- FAQ page ---------- */
 .page-hero { padding: clamp(3rem, 7vw, 5rem) 0; background: var(--ink); color: #fff; }

@@ -11,6 +11,11 @@
  *
  * The server sends { payload, signature } where signature = HMAC-SHA-256(payload, SHARED_SECRET).
  * Rows are upserted by Lead ID, so a draft row is updated in place when the enquiry is submitted.
+ *
+ * Emails: for a submitted enquiry the payload carries two emails, the internal notification (to the
+ * business address) and the customer acknowledgement. They are sent from the Google account that owns
+ * this script (MailApp), so deploy it from the business Gmail account. Approve the "send email as you"
+ * permission when Apps Script asks on first deployment. Consumer Gmail allows about 100 recipients a day.
  * Staff manage the Status column (Under Review, Contacted, Quoted, Won, Lost) directly in the Sheet.
  */
 
@@ -36,6 +41,7 @@ function doPost(e) {
   } finally {
     lock.releaseLock();
   }
+  sendEmails_(message.emails || []);
   return json_({ ok: true });
 }
 
@@ -67,6 +73,23 @@ function upsertRow_(row) {
     }
   }
   sheet.appendRow(values);
+}
+
+function sendEmails_(emails) {
+  emails.forEach(function (email) {
+    if (!email || !email.to || !email.subject) return;
+    try {
+      MailApp.sendEmail({
+        to: email.to,
+        replyTo: email.replyTo || undefined,
+        subject: email.subject,
+        body: email.text || '',
+        name: 'PureLine Hygiene',
+      });
+    } catch (error) {
+      console.error('Email to ' + email.to + ' failed: ' + error);
+    }
+  });
 }
 
 function json_(value) {

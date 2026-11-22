@@ -21,6 +21,12 @@ services:
         value: /var/data/leads.json
       - key: DRAFT_RETENTION_DAYS
         value: "30"
+      - key: BUSINESS_EMAIL
+        value: Nextgeneration.ai7.0@gmail.com   # receives enquiry notifications (sent via the Apps Script)
+      - key: APPS_SCRIPT_WEBHOOK_URL
+        sync: false          # Google Sheets lead register + emails; see docs/DEPLOY.md
+      - key: APPS_SCRIPT_SHARED_SECRET
+        sync: false
       - key: TURNSTILE_SITE_KEY
         sync: false          # entered in the dashboard, never committed
       - key: TURNSTILE_SECRET_KEY

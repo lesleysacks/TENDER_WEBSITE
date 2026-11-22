@@ -270,6 +270,7 @@ try {
   await type('[name="email"]', 'thandi@example.co.za');
   await evaluate('(() => { const b = document.querySelector("[data-submit-enquiry]"); b.click(); b.click(); b.click(); })()');
   check('confirmation appears', await waitFor('!document.querySelector("[data-confirmation]").hidden', 6000));
+  check('confirmation gives the contact email', await evaluate('document.querySelector(".confirm-contact a").getAttribute("href") === "mailto:Nextgeneration.ai7.0@gmail.com"'));
   check('confirmation shows the draft reference', (await text('[data-confirmation-reference]')) === draft.id);
   check('confirmation message wording', /Thank you for choosing PureLine Hygiene\. Your enquiry has been received and will be reviewed by our team\. Your reference number is PLH-/.test(await text('.confirm-message')));
   check('green success banner after submission', /Successfully submitted\. We will contact you after our team has reviewed your enquiry\./.test(await text('.success-banner')) && (await evaluate('getComputedStyle(document.querySelector(".success-banner")).color')) === 'rgb(31, 122, 77)');
@@ -283,13 +284,14 @@ try {
   // ---- Hero image + removed sections ----
   check('removed sections are gone (Solutions, Quality, Process, landing FAQs, Contact)', (await evaluate('!document.querySelector("#solutions, #faqs, #contact, #quality-title, #process-title")')));
   check('hero shows the logistics image behind the copy', (await evaluate('!!document.querySelector(".hero [data-logistics-scene] svg")')) && !(await evaluate('!!document.querySelector(".distribution")')));
-  check('footer shows only PURELINE HYGIENE', (await text('.site-footer')) === 'PURELINE HYGIENE');
+  check('footer: PURELINE HYGIENE on the left, business email link on the right', await evaluate('(() => { const b = document.querySelector(".footer-brand").getBoundingClientRect(), e = document.querySelector(".footer-email"); const r = e.getBoundingClientRect(); return document.querySelector(".footer-brand").textContent === "PURELINE HYGIENE" && e.getAttribute("href") === "mailto:Nextgeneration.ai7.0@gmail.com" && e.textContent === "Nextgeneration.ai7.0@gmail.com" && r.left > b.right && Math.abs(r.right - document.querySelector(".footer-inner").getBoundingClientRect().right) < 2; })()'));
 
 
   // ---- FAQ page ----
   await goto(`${BASE}/faq.html`);
   const faqCount = await evaluate('document.querySelectorAll(".faq-category details").length');
-  check('full FAQ page has categorised accordions', faqCount >= 30 && (await evaluate('document.querySelectorAll(".faq-category").length')) === 6, `${faqCount} questions`);
+  check('FAQ page keeps a short, categorised list', faqCount >= 15 && faqCount <= 25 && (await evaluate('document.querySelectorAll(".faq-category").length')) === 6, `${faqCount} questions`);
+  check('FAQ privacy answer gives the contact email', await evaluate('!!document.querySelector("#privacy a[href=\\"mailto:Nextgeneration.ai7.0@gmail.com\\"]")'));
   check('FAQ page links back to the landing page', await evaluate('!!document.querySelector(".back-link a[href=\\"index.html\\"]")'));
   await click('.faq-category details summary');
   check('FAQ accordion opens', await evaluate('document.querySelector(".faq-category details").open'));

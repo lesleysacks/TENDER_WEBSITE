@@ -166,6 +166,17 @@
       <rect class="l-jack" x="-56" y="-102" width="22" height="7" rx="3"/>
       <circle class="l-wheel" cx="-12" cy="-3" r="5"/><circle class="l-wheel" cx="92" cy="-2" r="3"/>`);
 
+  // Warehouse worker in a hi-vis vest, leaning in to push the pallet-jack handle (hands at x = -46, y = -100).
+  const worker = (x, y, s) => at(x, y, s, `
+      <path class="l-worker-leg" d="M-92 0 L-82 -46 M-64 0 L-76 -46"/>
+      <path class="l-worker-boot" d="M-100 0 H-86 M-70 0 H-56"/>
+      <path class="l-worker-shirt" d="M-88 -46 L-70 -48 L-56 -102 Q-62 -112 -74 -108 L-90 -96 Z"/>
+      <path class="l-worker-vest" d="M-86 -60 L-70 -62 L-60 -98 Q-64 -104 -72 -102 L-84 -92 Z"/>
+      <path class="l-worker-stripe" d="M-84 -76 L-66 -80"/>
+      <path class="l-worker-arm" d="M-64 -100 L-46 -98"/>
+      <circle class="l-worker-skin" cx="-52" cy="-120" r="10"/>
+      <path class="l-worker-cap" d="M-63 -122 Q-62 -134 -50 -133 Q-41 -131 -41 -122 Z"/>`);
+
   // Courier scooter with a top box, for urgent small parcels
   const scooter = (x, y, s) => at(x, y, s, `
       <rect class="l-courier-box" x="-14" y="-82" width="40" height="34" rx="3"/>
@@ -198,6 +209,7 @@
       ${loadedPallet(150, 500, 3, 2, 40, 30)}
       ${forklift(870, 500, 0.9)}
       ${palletJack(1330, 500, 0.9)}
+      ${worker(1330, 500, 0.9)}
       <rect class="l-yard" x="0" y="534" width="1600" height="226"/>
       ${van(850, 600, 0.62)}
       ${minibus(1060, 600, 0.62)}
@@ -209,7 +221,7 @@
     return svg(
       '0 0 1600 760',
       body,
-      'Illustration of the PureLine Hygiene distribution centre: a truck, panel van, minibus, bakkie and courier scooter, with a forklift and pallet jack moving stock',
+      'Illustration of the PureLine Hygiene distribution centre: a truck, panel van, minibus, bakkie and courier scooter, with a forklift and a worker pushing a pallet jack',
       'xMaxYMax slice' // the hero copy sits on the left, so any cropping happens there
     );
   }

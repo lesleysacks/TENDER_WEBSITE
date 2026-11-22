@@ -125,6 +125,31 @@ test('lead register row matches the Google Sheets columns', () => {
   assert.match(buildInternalNotification({ ...optedIn, consent: { whatsappFollowUp: false } }).text, /WhatsApp follow-up permitted: No/);
 });
 
+test('submitted enquiries are emailed to the business address and the customer via the Apps Script', async () => {
+  const { createNotifier } = require('../server/integrations');
+  const sent = [];
+  const fetchImpl = async (url, init) => { sent.push(JSON.parse(JSON.parse(init.body).payload)); return { ok: true }; };
+  const env = { APPS_SCRIPT_WEBHOOK_URL: 'https://script.example/exec', APPS_SCRIPT_SHARED_SECRET: 's' };
+  const notifier = createNotifier({ env, fetchImpl, logger: { error() {} } });
+  assert.deepEqual(notifier.status(), { googleSheets: true, email: true, businessEmail: 'Nextgeneration.ai7.0@gmail.com', whatsapp: false });
+  const lead = {
+    id: 'PLH-0000000A', createdAt: 't', submittedAt: 't', status: 'SUBMITTED', consent: { whatsappFollowUp: false },
+    requirements: { quantity: 100, packs: 10, unitPriceCents: 30, totalCents: 3000, targetUnitPriceCents: 30, targetPackPriceCents: 300, targetTotalCents: 3000, packaging: false, delivery: true, deliveryPoint: 'Durban', leadType: 'bulk' },
+    contact: { fullName: 'A Buyer', company: '', location: 'Durban', email: 'buyer@example.co.za', phone: '' },
+  };
+  await notifier.leadEvent('lead.draft_saved', { ...lead, status: 'DRAFT', contact: null });
+  await notifier.leadEvent('lead.submitted', lead);
+  assert.equal(sent[0].emails.length, 0, 'drafts send no email');
+  const [internal, ack] = sent[1].emails;
+  assert.equal(internal.to, 'Nextgeneration.ai7.0@gmail.com');
+  assert.equal(internal.replyTo, 'buyer@example.co.za');
+  assert.equal(ack.to, 'buyer@example.co.za');
+  assert.equal(ack.replyTo, 'Nextgeneration.ai7.0@gmail.com');
+  assert.match(ack.text, /PLH-0000000A/);
+  assert.equal(createNotifier({ env: { ...env, BUSINESS_EMAIL: 'sales@example.co.za' }, fetchImpl }).status().businessEmail, 'sales@example.co.za');
+  assert.equal(createNotifier({ env: {} }).status().email, false, 'no email until the Apps Script is configured');
+});
+
 test('WhatsApp links only exist for a configured number and carry the reference', () => {
   assert.equal(buildWhatsAppLink('', 'PLH-1'), null);
   assert.match(buildWhatsAppLink('+27 11 000 0000', 'PLH-8F3A92C7'), /^https:\/\/wa\.me\/27110000000\?text=.*PLH-8F3A92C7/);

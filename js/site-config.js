@@ -10,7 +10,7 @@ window.PURELINE_CONFIG = Object.freeze({
     : '/api',
 
   // Official business channels only (no personal numbers). Example WhatsApp format: '27XXXXXXXXX'.
-  businessEmail: '',
+  businessEmail: 'Nextgeneration.ai7.0@gmail.com',
   whatsappNumber: '',
 
   // Authentic photography. Leave a path empty to keep the drawn illustration in its place.

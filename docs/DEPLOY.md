@@ -116,6 +116,26 @@ rate-limiting rule for `/api/leads*` (for example 20 requests per minute per IP,
 
 ---
 
+## Lead register and enquiry emails (either option)
+
+New enquiries are emailed to **Nextgeneration.ai7.0@gmail.com** (`BUSINESS_EMAIL`), and each customer gets an acknowledgement.
+Both are sent by the Google Apps Script from the Gmail account that owns it, so no email password is
+stored on the server.
+
+1. Sign in to Google as **Nextgeneration.ai7.0@gmail.com**. Create a Google Sheet with a tab named `Leads`.
+2. Extensions → Apps Script. Paste `server/integrations/google-apps-script/LeadRegister.gs`.
+3. Project Settings → Script properties: add `SHARED_SECRET` with a long random value
+   (for example the output of `openssl rand -hex 32`).
+4. Deploy → New deployment → Web app, execute as **Me**, access **Anyone**. Approve the permissions
+   (Sheets and "send email as you").
+5. On the server set `APPS_SCRIPT_WEBHOOK_URL` to the deployment URL and `APPS_SCRIPT_SHARED_SECRET`
+   to the same secret (Render: service → Environment; VPS: `/etc/pureline.env`), then restart.
+6. The start-up log shows `email to Nextgeneration.ai7.0@gmail.com: on (via Apps Script)`. Submit a test enquiry: a row
+   appears in the sheet and both emails arrive.
+
+Consumer Gmail sends to about 100 recipients a day, which is roughly 50 enquiries. A Google Workspace
+account raises that limit.
+
 ## Optional: Cloudflare Turnstile bot check (either option)
 
 1. dash.cloudflare.com → Turnstile → Add widget, add your domain, mode **Managed**.

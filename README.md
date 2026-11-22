@@ -115,20 +115,26 @@ npm run leads -- delete PLH-8F3A92C7  # POPIA deletion request
 - Unsubmitted drafts are deleted after `DRAFT_RETENTION_DAYS` (default 30).
 - Consent: privacy consent is required to submit, and WhatsApp follow-up is a separate opt-in.
 
-## Future integrations (not live)
+## Integrations
 
-Website → backend → Google Apps Script → Google Sheets lead register → business email / WhatsApp.
+Website → backend → Google Apps Script → Google Sheets lead register + business email (live once the script is deployed) → WhatsApp (future).
 
 - `server/integrations/index.js` builds the lead-register row (Lead ID … Status), the internal
   notification, the customer acknowledgement and the WhatsApp link with the reference prefilled.
 - Set `APPS_SCRIPT_WEBHOOK_URL` and `APPS_SCRIPT_SHARED_SECRET` to send HMAC-signed rows to the Sheet.
   `server/integrations/google-apps-script/LeadRegister.gs` is the Apps Script template (upsert by Lead ID).
-- Email and automated WhatsApp messages need the official business accounts and an approved WhatsApp Business
-  integration. Until then the server logs that they are not configured.
+- **Email:** when an enquiry is submitted, the Apps Script also emails the internal notification to
+  `BUSINESS_EMAIL` (default `Nextgeneration.ai7.0@gmail.com`) and an acknowledgement to the customer, sent from the Google account
+  that owns the script. No mail-server credentials are stored on the website server. Email is live as soon
+  as the Apps Script is deployed and `APPS_SCRIPT_WEBHOOK_URL` / `APPS_SCRIPT_SHARED_SECRET` are set.
+- Automated WhatsApp messages need an approved WhatsApp Business integration. Until then the server logs
+  that WhatsApp is not configured.
 - Detailed Google Forms are sent manually after internal review, not to every visitor.
 
 ## Environment variables
 
 `PORT` (8000), `HOST` (127.0.0.1), `LEADS_FILE`, `TRUST_PROXY` (`cloudflare` or `true`), `ALLOWED_ORIGINS`, `NODE_ENV`,
 `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`,
-`DRAFT_RETENTION_DAYS`, `APPS_SCRIPT_WEBHOOK_URL`, `APPS_SCRIPT_SHARED_SECRET`.
+`DRAFT_RETENTION_DAYS`, `BUSINESS_EMAIL`, `APPS_SCRIPT_WEBHOOK_URL`, `APPS_SCRIPT_SHARED_SECRET`.
+
+The public contact address shown on the site (footer, confirmation, FAQ) is `businessEmail` in `js/site-config.js`.

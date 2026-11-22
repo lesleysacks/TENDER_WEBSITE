@@ -14,6 +14,9 @@ const { formatRand } = require('../../shared/pricing');
 
 const yesNo = (value) => (value ? 'Yes' : 'No');
 
+/** Official business contact address. Override with the BUSINESS_EMAIL environment variable. */
+const DEFAULT_BUSINESS_EMAIL = 'Nextgeneration.ai7.0@gmail.com';
+
 /** One row of the Google Sheets lead register, in the column order agreed with the business. */
 function toLeadRegisterRow(lead) {
   const req = lead.requirements || {};
@@ -76,7 +79,7 @@ function buildInternalNotification(lead) {
 }
 
 /** Acknowledgement for the customer. It must not read as an order or booking confirmation. */
-function buildCustomerAcknowledgement(lead) {
+function buildCustomerAcknowledgement(lead, businessEmail = DEFAULT_BUSINESS_EMAIL) {
   return {
     subject: `PureLine Hygiene enquiry ${lead.id} received`,
     text: [
@@ -86,6 +89,7 @@ function buildCustomerAcknowledgement(lead) {
       `Your reference number is ${lead.id}.`,
       '',
       'This is not a confirmed order or booking. We will contact you regarding your requirements.',
+      `Questions? Reply to this email or write to ${businessEmail}, quoting ${lead.id}.`,
       '',
       describeRequirements(lead),
     ].join('\n'),
@@ -108,10 +112,30 @@ function createNotifier({ env = process.env, logger = console, fetchImpl = globa
   const appsScriptUrl = env.APPS_SCRIPT_WEBHOOK_URL || '';
   const appsScriptSecret = env.APPS_SCRIPT_SHARED_SECRET || '';
   const sheetsEnabled = Boolean(appsScriptUrl && appsScriptSecret);
+  const businessEmail = env.BUSINESS_EMAIL || DEFAULT_BUSINESS_EMAIL;
+
+  /**
+   * Emails for a submitted enquiry. The Apps Script sends them from the business Google account
+   * (MailApp), so no mail-server credentials are kept on this server.
+   */
+  function emailsFor(event, lead) {
+    if (event !== 'lead.submitted' || !lead.contact) return [];
+    const internal = buildInternalNotification(lead);
+    const ack = buildCustomerAcknowledgement(lead, businessEmail);
+    return [
+      { to: businessEmail, replyTo: lead.contact.email, subject: internal.subject, text: internal.text },
+      { to: lead.contact.email, replyTo: businessEmail, subject: ack.subject, text: ack.text },
+    ];
+  }
 
   async function sendToLeadRegister(event, lead) {
     // Apps Script web apps cannot read request headers, so the HMAC signature travels in the body.
-    const payload = JSON.stringify({ event, sentAt: new Date().toISOString(), row: toLeadRegisterRow(lead) });
+    const payload = JSON.stringify({
+      event,
+      sentAt: new Date().toISOString(),
+      row: toLeadRegisterRow(lead),
+      emails: emailsFor(event, lead),
+    });
     const response = await fetchImpl(appsScriptUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -122,7 +146,8 @@ function createNotifier({ env = process.env, logger = console, fetchImpl = globa
 
   return {
     status() {
-      return { googleSheets: sheetsEnabled, email: false, whatsapp: false };
+      // Email goes out through the Apps Script, so it is live once the lead register is configured.
+      return { googleSheets: sheetsEnabled, email: sheetsEnabled, businessEmail, whatsapp: false };
     },
 
     /** Called after a lead is saved. Failures are logged and never undo the saved lead. */
@@ -134,8 +159,7 @@ function createNotifier({ env = process.env, logger = console, fetchImpl = globa
           logger.error(`[integrations] lead register update failed for ${lead.id}: ${error.message}`);
         }
       }
-      // Email: wire buildInternalNotification / buildCustomerAcknowledgement to the business mail
-      // provider once the official address and credentials exist.
+      // Email: sent by the Apps Script with the lead register update (see emailsFor).
       // WhatsApp: automated messages require an approved WhatsApp Business integration and the
       // customer's whatsappConsent. Until then, staff follow up manually using buildWhatsAppLink.
     },
@@ -149,4 +173,5 @@ module.exports = {
   buildWhatsAppLink,
   signPayload,
   createNotifier,
+  DEFAULT_BUSINESS_EMAIL,
 };
