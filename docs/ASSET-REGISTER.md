@@ -20,6 +20,9 @@ illustrations are replaced automatically. Non-critical images are lazy-loaded.
 |---|---|---|---|---|---|
 | `assets/favicon.svg` | All pages | Created for this project | Owned by PureLine Hygiene | — | In use |
 | Drawn illustrations (product, supply tiers, logistics scene) | Home page | Generated in code (`js/illustrations.js`) for this project | Owned by PureLine Hygiene | — | In use until photography is supplied |
+| `assets/logos/b-bbee.webp` | Home page, credentials strip | Cropped from a B-BBEE promotional banner supplied by PureLine Hygiene (the "B-BBEE" wordmark only) | To be recorded: confirm the banner's source and licence (B-BBEE has no official logo) | — | In use; record source |
+| `assets/logos/sabs.webp` | Home page, credentials strip | SABS logo supplied by PureLine Hygiene | SABS permit (management confirmed PureLine holds one) | Add permit number and a copy of the permit | In use; file evidence |
+| `assets/logos/proudly-south-african.webp` | Home page, credentials strip | Proudly South African logo supplied by PureLine Hygiene | Proudly SA membership licence (management confirmed membership) | Add membership number and licence terms | In use; file evidence |
 | IBM Plex Sans / IBM Plex Mono | All pages | Google Fonts | SIL Open Font Licence 1.1 | fonts.google.com | In use |
 | `assets/images/hero-factory.webp` | Not used | Legacy placeholder illustration | Unknown | — | Unused — review and delete |
 | `assets/images/og-preview.jpg` | Not used | Legacy social preview from the previous brand | Unknown | — | Unused — replace with a PureLine preview image |

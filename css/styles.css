@@ -163,6 +163,10 @@ section[tabindex="-1"]:focus { outline: none; }
 }
 .credentials-list li + li { border-left: 2px solid var(--teal); }
 .credentials-list .icon { flex: none; }
+/* Official marks: shown at a fixed height, width follows each logo's shape. */
+.cred-logo { flex: none; width: auto; height: 34px; }
+.cred-logo-wide { height: 26px; }
+.cred-logo-round { height: 52px; }
 .credentials-list strong { display: block; font-size: 0.9rem; font-weight: 600; line-height: 1.25; }
 .credentials-list small { display: block; color: var(--muted); font-size: 0.76rem; line-height: 1.35; }
 .icon { width: 22px; height: 22px; fill: none; stroke: var(--teal); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }

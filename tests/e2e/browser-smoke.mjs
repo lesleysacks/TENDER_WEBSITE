@@ -165,6 +165,7 @@ try {
   check('"Which describes you?" options sit in the hero', (await evaluate('document.querySelectorAll(".hero input[name=leadType]").length')) === 4
     && (await evaluate('document.querySelectorAll("input[name=leadType]").length')) === 4);
   check('credentials strip: B-BBEE, SABS/SANS and Proudly South African on one line', await evaluate('(() => { const s = document.querySelector(".hero + .credentials"); if (!s) return false; const items = [...s.querySelectorAll(".credentials-list li")]; const tops = items.map(li => Math.round(li.getBoundingClientRect().top)); return items.length === 3 && new Set(tops).size === 1 && /B-BBEE/.test(items[0].textContent) && /SABS/.test(items[1].textContent) && /Proudly South African/.test(items[2].textContent); })()'));
+  check('credentials show the B-BBEE, SABS and Proudly South African logos', await evaluate('(() => { const imgs = [...document.querySelectorAll(".credentials-list img.cred-logo")]; return imgs.length === 3 && imgs.every(i => i.complete && i.naturalWidth > 0) && /b-bbee/.test(imgs[0].src) && /sabs/.test(imgs[1].src) && /proudly-south-african/.test(imgs[2].src); })()'));
   check('hero fact row removed', !(await evaluate('!!document.querySelector(".hero-facts")')));
   check('estimator steps sit side by side on desktop', await evaluate('(() => { const a = document.querySelector("#quantity-step").getBoundingClientRect(), b = document.querySelector("#cost-title").closest("section").getBoundingClientRect(); return Math.abs(a.top - b.top) < 2 && b.left > a.right - 1; })()'));
 
