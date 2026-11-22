@@ -140,15 +140,10 @@ section[tabindex="-1"]:focus { outline: none; }
 
 /* Qualifying question in the hero ("Which describes you?") */
 .hero-qualify {
-  position: relative; isolation: isolate;
-  max-width: 44rem; margin: 2rem 0 0; padding: 1.1rem 1.2rem 1.2rem; min-width: 0;
-  border: 0; background: transparent; color: var(--ink);
-}
-/* A light panel with blurred, feathered edges behind the content, so the card fades into the hero image */
-.hero-qualify::before {
-  content: ""; position: absolute; inset: -22px; z-index: -1; border-radius: 34px;
-  background: rgb(255 253 248 / 94%);
-  filter: blur(16px);
+  position: relative;
+  max-width: 44rem; margin: 1.8rem 0 0; padding: 1rem 1.1rem 1.1rem; min-width: 0;
+  border: 0; border-top: 5px solid var(--amber); border-radius: 8px;
+  background: var(--white); color: var(--ink); box-shadow: 0 14px 34px rgb(0 0 0 / 35%);
 }
 .hero-qualify legend { display: contents; }
 .hero-step {
@@ -163,7 +158,7 @@ section[tabindex="-1"]:focus { outline: none; }
 .hero-qualify:has(input:checked) .hero-required::before { content: "✓ "; }
 /* Until answered, a gold ring pulses around the question so it is hard to miss */
 .hero-qualify::after {
-  content: ""; position: absolute; inset: -4px; z-index: -1; border-radius: 22px; pointer-events: none;
+  content: ""; position: absolute; inset: -6px; border-radius: 12px; pointer-events: none;
   border: 3px solid var(--amber); opacity: 0;
 }
 .hero-qualify:not(:has(input:checked))::after { animation: attention 1.8s ease-in-out infinite; }
@@ -193,8 +188,7 @@ section[tabindex="-1"]:focus { outline: none; }
 .hero-option input:checked::before { transform: scale(1); }
 .hero-option input:focus-visible { outline: none; }
 /* Shown when someone saves without choosing */
-.hero-qualify.needs-answer { animation: nudge 420ms ease 2; }
-.hero-qualify.needs-answer::before { background: rgb(253 236 232 / 96%); box-shadow: 0 0 0 8px rgb(163 57 42 / 55%); }
+.hero-qualify.needs-answer { background: #fdf1ef; box-shadow: 0 0 0 4px var(--error), 0 14px 34px rgb(0 0 0 / 35%); animation: nudge 420ms ease 2; }
 .hero-qualify.needs-answer .hero-choose { color: var(--error); }
 @keyframes nudge { 0%, 100% { translate: 0 0; } 25% { translate: -6px 0; } 75% { translate: 6px 0; } }
 
