@@ -1,0 +1,31 @@
+# Render Blueprint: one Node web service that serves the website AND the enquiry API (npm start).
+# Render dashboard → New → Blueprint → pick this repository. See docs/DEPLOY.md.
+services:
+  - type: web
+    name: pureline-website
+    runtime: node
+    plan: starter            # a paid plan is required for the persistent disk below
+    region: frankfurt
+    buildCommand: npm install --omit=dev   # no dependencies today; keeps the build step valid
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0       # Render routes traffic to the container, not to localhost
+      - key: TRUST_PROXY
+        value: "true"        # Render's proxy sets X-Forwarded-For with the visitor's address
+      - key: LEADS_FILE
+        value: /var/data/leads.json
+      - key: DRAFT_RETENTION_DAYS
+        value: "30"
+      - key: TURNSTILE_SITE_KEY
+        sync: false          # entered in the dashboard, never committed
+      - key: TURNSTILE_SECRET_KEY
+        sync: false
+    disk:
+      name: leads
+      mountPath: /var/data   # survives deploys and restarts; everything else is wiped
+      sizeGB: 1

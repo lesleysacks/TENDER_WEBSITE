@@ -32,8 +32,9 @@ function toLeadRegisterRow(lead) {
     'Price Wanted': req.targetUnitPriceCents ? formatRand(req.targetUnitPriceCents) : '',
     'Pack Price Wanted': req.targetPackPriceCents ? formatRand(req.targetPackPriceCents) : '',
     'Estimated Selling Price': req.targetTotalCents ? formatRand(req.targetTotalCents) : '',
-    Packaging: yesNo(req.packaging),
-    Delivery: yesNo(req.delivery),
+    'Stickers/Decals': yesNo(req.packaging),
+    Delivery: req.delivery ? 'Deliver' : 'Collect',
+    'Delivery Point': req.deliveryPoint || '',
     'Lead Type': getLeadType(req.leadType)?.registerLabel || '',
     Status: STATUS_LABELS[lead.status] || lead.status,
   };
@@ -47,8 +48,8 @@ function describeRequirements(lead) {
     `Price wanted per pack of 10: ${formatRand(req.targetPackPriceCents)}`,
     `Estimated selling price: ${formatRand(req.targetTotalCents)}`,
     `Our indicative price per pad: ${formatRand(req.unitPriceCents)} (total ${formatRand(req.totalCents)})`,
-    `Packaging required: ${yesNo(req.packaging)}`,
-    `Delivery required: ${yesNo(req.delivery)}`,
+    `Stickers/decals on packs: ${yesNo(req.packaging)}`,
+    `Delivery: ${req.delivery ? `deliver to ${req.deliveryPoint || '(delivery point not given yet)'}` : 'customer will collect'}`,
     `Requirement: ${getLeadType(req.leadType)?.label || ''}`,
   ].join('\n');
 }
@@ -67,7 +68,7 @@ function buildInternalNotification(lead) {
       `Location: ${c.location}`,
       `Email: ${c.email}`,
       `Phone: ${c.phone || '-'}`,
-      `WhatsApp follow-up permitted: ${yesNo(c.whatsappConsent)}`,
+      `WhatsApp follow-up permitted: ${yesNo(lead.consent?.whatsappFollowUp)}`,
       '',
       describeRequirements(lead),
     ].join('\n'),

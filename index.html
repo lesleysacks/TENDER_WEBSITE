@@ -14,7 +14,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="css/styles.css?v=13" />
+    <link rel="stylesheet" href="css/styles.css?v=14" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -54,13 +54,22 @@
           <div class="hero-copy">
             <p class="eyebrow">Sanitary pad manufacturer · South Africa</p>
             <h1 id="hero-title">Congratulations on securing your tender!</h1>
-            <p class="hero-sub">Local sanitary pad supply, right on your doorstep.</p>
-            <p class="hero-text">Bulk sanitary pads for government tenders. Made in South Africa. Estimate your supply in seconds.</p>
+            <p class="hero-sub">Specialist manufacturers &amp; suppliers. Made in South Africa.</p>
+            <p class="hero-text">Bulk sanitary pads for government tenders. Estimate your supply in seconds.</p>
             <div class="cta-row">
               <a class="btn btn-primary" href="#calculator">Calculate Your Supply</a>
               <a class="btn btn-outline" href="#quantity-step">Request a Booking</a>
             </div>
-            <p class="hero-note">A booking request is an enquiry — not a confirmed booking or order.</p>
+            <!-- Qualifying question: part of the enquiry, asked up front -->
+            <fieldset class="hero-qualify" id="lead-type">
+              <legend>Which describes you?</legend>
+              <div class="hero-options">
+                <label class="hero-option"><input type="radio" name="leadType" value="tender-secured" /><span>Secured a tender</span></label>
+                <label class="hero-option"><input type="radio" name="leadType" value="tender-preparing" /><span>Preparing a tender</span></label>
+                <label class="hero-option"><input type="radio" name="leadType" value="organisation" /><span>Organisation</span></label>
+                <label class="hero-option"><input type="radio" name="leadType" value="bulk" /><span>Bulk supply</span></label>
+              </div>
+            </fieldset>
           </div>
         </div>
       </section>
@@ -82,14 +91,6 @@
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21V10l5 3v-3l5 3V7l8 4v10H3z"/><path d="M7 17h2M12 17h2M17 17h1"/></svg>
                 <span><strong>Proudly South African</strong><small>Local pad manufacturing</small></span>
               </li>
-              <li>
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7l9-4 9 4v10l-9 4-9-4V7z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg>
-                <span><strong>Product packaging</strong><small>Packed to your specification</small></span>
-              </li>
-              <li>
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12V3h9l9 9-9 9-9-9z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
-                <span><strong>Competitive bulk pricing</strong><small>From R0.30 per pad</small></span>
-              </li>
             </ul>
         </div>
       </section>
@@ -99,7 +100,14 @@
         <div class="container estimator">
           <div class="funnel-progress" data-progress>
             <div class="progress-head">
-              <h2 id="estimator-title">Bulk sanitary pad estimator</h2>
+              <div>
+                <h2 id="estimator-title">Bulk sanitary pad estimator</h2>
+                <p class="est-tagline">You tell us what you want.</p>
+              </div>
+              <p class="est-tally mono" aria-live="polite">
+                <span>Pads = <strong data-tally-pads>10,000</strong></span>
+                <span>Packs = <strong data-tally-packs>1,000</strong></span>
+              </p>
               <span class="progress-text mono" data-progress-text>0% · Start</span>
             </div>
             <div class="progress-track" data-progress-bar role="progressbar" aria-label="Enquiry progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
@@ -116,33 +124,36 @@
             <!-- Step 1: quantity + visualiser -->
             <section class="est-step" id="quantity-step" aria-labelledby="qty-title" tabindex="-1">
               <p class="step-index mono">01</p>
-              <h3 id="qty-title">How many sanitary pads do you need?</h3>
+              <h3 id="qty-title">How many do you need?</h3>
+              <p class="step-lead">Fill in packs or single pads.</p>
 
-              <div class="slider-row">
-              <div class="qty-control">
-                <p class="slider-label">Loose pads</p>
-                <div class="qty-input-row">
-                  <button class="qty-step" type="button" data-qty-step="-1" aria-label="Decrease quantity">−</button>
-                  <label class="qty-field">
-                    <span class="visually-hidden">Quantity of pads</span>
+              <div class="qty-equation">
+                <label class="qty-box">
+                  <span class="slider-label">Single pads</span>
+                  <span class="qty-field">
                     <input type="text" inputmode="numeric" autocomplete="off" data-qty-input aria-describedby="qty-hint" />
                     <span class="qty-unit" aria-hidden="true">pads</span>
-                  </label>
-                  <button class="qty-step" type="button" data-qty-step="1" aria-label="Increase quantity">+</button>
-                </div>
+                  </span>
+                </label>
+                <span class="qty-equals" aria-hidden="true">=</span>
+                <label class="qty-box">
+                  <span class="slider-label">Packs of 10</span>
+                  <span class="qty-field">
+                    <input type="text" inputmode="numeric" autocomplete="off" data-pack-input aria-describedby="qty-hint" />
+                    <span class="qty-unit" aria-hidden="true">packs</span>
+                  </span>
+                </label>
+              </div>
+              <div class="qty-slider-row">
+                <button class="qty-step" type="button" data-qty-step="-1" aria-label="Decrease quantity">−</button>
                 <label class="visually-hidden" for="qty-range">Quantity slider</label>
                 <input id="qty-range" class="qty-range" type="range" min="0" max="1000" step="1" value="0" data-qty-range />
-                <div class="range-scale mono" aria-hidden="true">
-                  <span>0</span><span>250,000</span><span>1,000,000</span>
-                </div>
-                <p class="hint" id="qty-hint">Type, drag or use − / +.</p>
+                <button class="qty-step" type="button" data-qty-step="1" aria-label="Increase quantity">+</button>
               </div>
-              <div class="slider-readout" aria-live="polite">
-                <span class="readout-label">Packs of 10</span>
-                <strong class="readout-value mono" data-qty-packs>1,000</strong>
-                <span class="readout-sub" data-qty-loose></span>
+              <div class="range-scale mono" aria-hidden="true">
+                <span>0</span><span>250,000</span><span>1,000,000 pads</span>
               </div>
-              </div>
+              <p class="hint" id="qty-hint">Type in either box, drag, or use − / +. <span data-qty-loose></span></p>
 
               <div class="visualiser">
                 <figure class="visual-panel">
@@ -173,11 +184,11 @@
             <!-- Step 2: cost estimate (no imagery) -->
             <section class="est-step" aria-labelledby="cost-title">
               <p class="step-index mono">02</p>
-              <h3 id="cost-title">Estimate Your Supply Cost</h3>
+              <h3 id="cost-title">How much do you want to pay?</h3>
 
-              <div class="slider-row">
+              <div class="price-pair">
                 <div class="price-control">
-                  <label class="slider-label" for="price-input">Price you want per pad</label>
+                  <label class="slider-label" for="price-input">Your price per pad</label>
                   <div class="price-input-row">
                     <button class="qty-step" type="button" data-price-step="-1" aria-label="Lower price by 1 cent">−</button>
                     <span class="price-field">
@@ -186,23 +197,26 @@
                     </span>
                     <button class="qty-step" type="button" data-price-step="1" aria-label="Raise price by 1 cent">+</button>
                   </div>
-                  <label class="visually-hidden" for="price-range">Price per pad slider</label>
-                  <input id="price-range" class="qty-range" type="range" data-price-range />
-                  <div class="range-scale mono" aria-hidden="true">
-                    <span data-price-min></span><span data-price-max></span>
-                  </div>
                 </div>
-                <div class="slider-readout" aria-live="polite">
-                  <span class="readout-label">Price per pack of 10</span>
-                  <strong class="readout-value mono" data-price-pack>R3.00</strong>
+                <div class="price-control price-pack-control">
+                  <label class="slider-label" for="pack-price-input">Your price per pack of 10</label>
+                  <span class="price-field">
+                    <span class="price-prefix" aria-hidden="true">R</span>
+                    <input id="pack-price-input" type="text" inputmode="decimal" autocomplete="off" data-pack-price-input aria-describedby="price-hint" />
+                  </span>
                 </div>
               </div>
+              <label class="visually-hidden" for="price-range">Price per pad slider</label>
+              <input id="price-range" class="qty-range" type="range" data-price-range />
+              <div class="range-scale mono" aria-hidden="true">
+                <span data-price-min></span><span data-price-max></span>
+              </div>
 
-              <dl class="cost-grid" aria-live="polite">
-                <div><dt>Loose pads</dt><dd class="mono" data-cost-quantity></dd></div>
-                <div><dt>Packs of 10</dt><dd class="mono" data-cost-packs></dd></div>
-                <div class="cost-wide cost-total"><dt>Estimated selling price</dt><dd class="mono" data-cost-total></dd></div>
-              </dl>
+              <div class="cost-result" aria-live="polite">
+                <p class="cost-result-kicker">You asked for</p>
+                <p class="cost-result-main mono"><span data-cost-packs></span> = <span data-cost-total></span></p>
+                <p class="cost-result-base" data-cost-base></p>
+              </div>
               <p class="cost-empty" data-cost-empty hidden>Choose a quantity to see your estimate.</p>
               <p class="hint" id="price-hint">
                 Our pricing starts at <span class="mono" data-cost-unit></span> per pad · <span data-cost-tier></span>.
@@ -214,46 +228,47 @@
           </div>
 
           <div class="est-row">
-            <!-- Step 3: additional requirements -->
-            <section class="est-step" aria-labelledby="req-title">
+            <!-- Step 3: packaging -->
+            <section class="est-step" aria-labelledby="pack-title">
               <p class="step-index mono">03</p>
-              <h3 id="req-title">Additional Supply Requirements</h3>
-              <div class="check-grid">
-                <label class="check-option">
-                  <input type="checkbox" data-req="packaging" />
-                  <span>I require product packaging.</span>
-                </label>
-                <label class="check-option">
-                  <input type="checkbox" data-req="delivery" />
-                  <span>I require delivery.</span>
-                </label>
-              </div>
-              <p class="hint">Included in your final quotation. No extra charges added here.</p>
+              <h3 id="pack-title">Packaging</h3>
+              <p class="pack-spec">Our packs are heat-sealed in plain white plastic.</p>
+              <p class="pack-text">Packs can be made specific to your order using stickers or decals.</p>
+              <p class="pack-note"><strong>Please note: we do not print on packaging.</strong></p>
+              <label class="check-option">
+                <input type="checkbox" data-req="packaging" />
+                <span>I would like stickers or decals on my packs.</span>
+              </label>
             </section>
 
-            <!-- Step 4: qualifying question → save draft (50%) -->
-            <section class="est-step" data-stage1 aria-labelledby="qualify-title">
+            <!-- Step 4: delivery -->
+            <section class="est-step" aria-labelledby="delivery-title">
               <p class="step-index mono">04</p>
-              <fieldset class="qualify">
-                <legend><h3 id="qualify-title">What best describes your supply requirement?</h3></legend>
-                <div class="radio-grid">
-                  <label class="radio-option"><input type="radio" name="leadType" value="tender-secured" /><span>I have secured a government tender.</span></label>
-                  <label class="radio-option"><input type="radio" name="leadType" value="tender-preparing" /><span>I am preparing a tender submission.</span></label>
-                  <label class="radio-option"><input type="radio" name="leadType" value="organisation" /><span>I represent an organisation.</span></label>
-                  <label class="radio-option"><input type="radio" name="leadType" value="bulk" /><span>I am enquiring for bulk supply.</span></label>
-                </div>
-              </fieldset>
-              <p class="form-error" data-stage1-error role="alert" hidden></p>
-              <div class="stage1-actions">
-                <button class="btn btn-primary" type="button" data-save-draft><span data-label>Save and continue</span></button>
-                <p class="hint">Saved as a draft. No login needed.</p>
-              </div>
-              <p class="success-note" data-stage1-success role="status" hidden>
-                <span class="success-icon" aria-hidden="true">✓</span>
-                <span>Requirements saved — 50% complete. Add your contact details below to finish.</span>
-              </p>
+              <h3 id="delivery-title">Delivery</h3>
+              <label class="field">
+                <span>Where is your delivery point?</span>
+                <input type="text" maxlength="160" autocomplete="off" data-req="deliveryPoint" placeholder="e.g. warehouse, school or depot, and the town" aria-describedby="delivery-hint" />
+              </label>
+              <p class="hint" id="delivery-hint">We will provide delivery recommendations with your quotation.</p>
+              <label class="check-option collect-option">
+                <input type="checkbox" data-req="collect" />
+                <span>No delivery needed — I will arrange collection.</span>
+              </label>
             </section>
           </div>
+
+          <!-- Save requirements as a draft (50%) -->
+          <section class="est-step save-bar" data-stage1 aria-label="Save your requirements">
+            <div class="stage1-actions">
+              <button class="btn btn-primary" type="button" data-save-draft><span data-label>Save and continue</span></button>
+              <p class="hint">Saved as a draft. No login needed.</p>
+            </div>
+            <p class="form-error" data-stage1-error role="alert" hidden></p>
+            <p class="success-note" data-stage1-success role="status" hidden>
+              <span class="success-icon" aria-hidden="true">✓</span>
+              <span>Requirements saved — 50% complete. Add your contact details below to finish.</span>
+            </p>
+          </section>
 
           <!-- Stage 2: contact details → submit (100%) -->
           <section class="est-step stage2" data-stage2 aria-labelledby="stage2-title" hidden>
@@ -269,7 +284,7 @@
                   <div><dt>Price you want per pad</dt><dd data-summary="unit"></dd></div>
                   <div><dt>Price per pack of 10</dt><dd data-summary="pack"></dd></div>
                   <div><dt>Estimated selling price</dt><dd data-summary="total"></dd></div>
-                  <div><dt>Packaging</dt><dd data-summary="packaging"></dd></div>
+                  <div><dt>Stickers / decals</dt><dd data-summary="packaging"></dd></div>
                   <div><dt>Delivery</dt><dd data-summary="delivery"></dd></div>
                   <div><dt>Your requirement</dt><dd data-summary="leadType"></dd></div>
                 </dl>
@@ -355,14 +370,14 @@
       <div class="container">PURELINE HYGIENE</div>
     </footer>
 
-    <script src="shared/quantity.js?v=13"></script>
-    <script src="shared/pricing.js?v=13"></script>
-    <script src="shared/lead-schema.js?v=13"></script>
-    <script src="js/site-config.js?v=13"></script>
-    <script src="js/visual-tiers.js?v=13"></script>
-    <script src="js/illustrations.js?v=13"></script>
-    <script src="js/site.js?v=13"></script>
-    <script src="js/estimator.js?v=13"></script>
-    <script src="js/lead-funnel.js?v=13"></script>
+    <script src="shared/quantity.js?v=14"></script>
+    <script src="shared/pricing.js?v=14"></script>
+    <script src="shared/lead-schema.js?v=14"></script>
+    <script src="js/site-config.js?v=14"></script>
+    <script src="js/visual-tiers.js?v=14"></script>
+    <script src="js/illustrations.js?v=14"></script>
+    <script src="js/site.js?v=14"></script>
+    <script src="js/estimator.js?v=14"></script>
+    <script src="js/lead-funnel.js?v=14"></script>
   </body>
 </html>

@@ -138,11 +138,25 @@ section[tabindex="-1"]:focus { outline: none; }
 .cta-row { display: flex; flex-wrap: wrap; gap: 0.7rem; margin-top: 1.4rem; }
 .hero-note { max-width: 34rem; margin-top: 0.8rem; color: #9fb1ad; font-size: 0.82rem; }
 
+/* Qualifying question in the hero ("Which describes you?") */
+.hero-qualify { max-width: 40rem; margin: 1.3rem 0 0; padding: 0; border: 0; min-width: 0; }
+.hero-qualify legend { padding: 0; margin-bottom: 0.5rem; color: #c5d2ce; font-size: 0.85rem; font-weight: 600; }
+.hero-options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; }
+.hero-option {
+  display: flex; align-items: center; gap: 0.5rem; min-height: 44px;
+  padding: 0.5rem 0.7rem; border: 1px solid rgb(255 255 255 / 35%); background: rgb(20 35 42 / 55%);
+  color: #fff; font-size: 0.85rem; font-weight: 500; line-height: 1.25; cursor: pointer;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+.hero-option:hover { border-color: var(--aqua); }
+.hero-option:has(input:checked) { border-color: var(--aqua); background: rgb(47 111 104 / 70%); }
+.hero-option input { flex: none; width: 1rem; height: 1rem; margin: 0; accent-color: var(--aqua); }
+
 /* "We Specialise In" — one row directly under the hero */
 .credentials { background: var(--white); border-bottom: 1px solid var(--line); }
 .credentials-inner { padding-block: 1.1rem; }
-/* Five equal columns across the full width, separated by teal dividers. */
-.credentials-list { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin: 0; padding: 0; list-style: none; }
+/* Three equal columns across the full width, separated by teal dividers. */
+.credentials-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 0; list-style: none; }
 .credentials-list li {
   display: flex; align-items: center; justify-content: center; gap: 0.65rem;
   padding: 0.35rem clamp(0.5rem, 1.5vw, 1.25rem);
@@ -157,13 +171,16 @@ section[tabindex="-1"]:focus { outline: none; }
 .estimator-section { padding: clamp(1.75rem, 3.5vw, 2.75rem) 0; background: var(--paper-2); }
 .estimator { display: grid; gap: 0.85rem; min-width: 0; }
 .est-row { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 0.85rem; align-items: stretch; }
-.est-row:nth-child(3) { grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); }
-.est-row:has(> [data-stage1][hidden]) { grid-template-columns: 1fr; } /* after submission */
+.est-row:nth-child(3) { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 
 /* Progress */
 .funnel-progress { --progress: 0%; padding: 1rem 1.25rem 0.9rem; background: var(--white); border: 1px solid var(--line); }
 .progress-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.25rem 1rem; margin-bottom: 0.75rem; }
+.progress-head { align-items: center; }
 .progress-head h2 { font-size: clamp(1.2rem, 2vw, 1.5rem); }
+.est-tagline { margin-top: 0.15rem; color: var(--teal-dark); font-size: 0.92rem; font-weight: 600; }
+.est-tally { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; margin-left: auto; color: var(--muted); font-size: 0.85rem; }
+.est-tally strong { color: var(--ink); font-weight: 500; }
 .progress-text { padding: 0.15rem 0.55rem; background: #eef6f3; color: var(--teal-dark); font-size: 0.78rem; }
 .progress-track { position: relative; height: 6px; background: var(--paper-2); overflow: hidden; }
 .progress-fill { position: absolute; inset: 0 auto 0 0; width: var(--progress); background: var(--teal); transition: width 400ms ease; }
@@ -186,19 +203,10 @@ section[tabindex="-1"]:focus { outline: none; }
 .est-step h3:focus { outline: none; }
 .hint { margin-top: 0.6rem; color: var(--muted); font-size: 0.82rem; }
 .hint:empty { display: none; }
+.step-lead { margin: -0.55rem 0 0.8rem; color: var(--ink-2); font-size: 0.9rem; }
 
-/* Slider + readout rows (loose pads → packs of 10; price per pad → price per pack) */
-.slider-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(130px, auto); gap: 0.85rem; align-items: stretch; }
+/* Slider labels */
 .slider-label { display: block; margin-bottom: 0.45rem; color: var(--ink-2); font-size: 0.8rem; font-weight: 600; }
-.slider-readout {
-  display: grid; align-content: center; justify-items: center; gap: 0.15rem;
-  min-width: 130px; padding: 0.75rem 0.9rem;
-  border: 1px solid var(--teal); background: #eef6f3; text-align: center;
-}
-.readout-label { color: var(--teal-dark); font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; }
-.readout-value { color: var(--ink); font-size: clamp(1.35rem, 2.4vw, 1.75rem); line-height: 1.1; }
-.readout-sub { color: var(--muted); font-size: 0.75rem; }
-.readout-sub:empty { display: none; }
 .price-control { min-width: 0; }
 .price-input-row { display: grid; grid-template-columns: 48px minmax(0, 1fr) 48px; gap: 0.5rem; }
 .price-field { position: relative; display: block; }
@@ -209,10 +217,14 @@ section[tabindex="-1"]:focus { outline: none; }
   font-family: var(--mono); font-size: 1.3rem; font-weight: 500; text-align: center;
 }
 .price-field input:focus-visible { outline-offset: 0; border-color: var(--teal); }
-.est-step .slider-row + .cost-grid { margin-top: 1rem; }
 
-/* Quantity */
-.qty-input-row { display: grid; grid-template-columns: 56px minmax(0, 1fr) 56px; gap: 0.5rem; }
+/* Quantity: single pads = packs of 10 (compact) */
+.qty-equation { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: end; gap: 0.6rem; }
+.qty-box { display: block; min-width: 0; }
+.qty-equals { padding-bottom: 0.55rem; color: var(--teal); font-family: var(--mono); font-size: 1.5rem; line-height: 1; }
+.qty-slider-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) 40px; align-items: center; gap: 0.6rem; margin-top: 0.8rem; }
+.qty-slider-row .qty-step { height: 40px; font-size: 1.25rem; }
+.qty-slider-row .qty-range { margin: 0; }
 .qty-step {
   border: 1px solid var(--line-strong); border-radius: 2px; background: var(--white);
   font-size: 1.5rem; line-height: 1;
@@ -221,13 +233,13 @@ section[tabindex="-1"]:focus { outline: none; }
 .qty-step:disabled { cursor: not-allowed; opacity: 0.4; }
 .qty-field { position: relative; display: block; }
 .qty-field input {
-  width: 100%; min-height: 56px; padding: 0.4rem 4.5rem 0.4rem 1rem;
+  width: 100%; min-height: 48px; padding: 0.35rem 3.6rem 0.35rem 0.8rem;
   border: 1px solid var(--line-strong); border-radius: 2px; background: #fff;
-  font-family: var(--mono); font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 500; text-align: center;
+  font-family: var(--mono); font-size: clamp(1.15rem, 2vw, 1.4rem); font-weight: 500; text-align: center;
 }
 .qty-field input:focus-visible { outline-offset: 0; border-color: var(--teal); }
-.qty-unit { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 0.9rem; }
-.qty-range { width: 100%; margin: 0.9rem 0 0; accent-color: var(--teal); cursor: pointer; }
+.qty-unit { position: absolute; right: 0.8rem; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 0.9rem; }
+.qty-range { width: 100%; margin: 0.8rem 0 0; accent-color: var(--teal); cursor: pointer; }
 .range-scale { display: flex; justify-content: space-between; margin-top: 0.3rem; color: var(--muted); font-size: 0.72rem; }
 
 /* Visualiser */
@@ -282,15 +294,26 @@ section[tabindex="-1"]:focus { outline: none; }
 .i-ground { fill: #14232a; opacity: 0.07; }
 .i-depth { opacity: 0.5; }
 
+/* Price: per pad and per pack side by side */
+.price-pair { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 0.75rem; align-items: end; }
+.price-pack-control .price-field input { border-color: var(--teal); background: #eef6f3; }
+
+/* "You asked for 1,200 packs = R3,600.00" */
+.cost-result { margin-top: 1rem; padding: 0.9rem 1.1rem; background: var(--ink); color: #fff; }
+.cost-result-kicker { color: #a9bab6; font-size: 0.78rem; font-weight: 500; }
+.cost-result-main { margin-top: 0.15rem; font-size: clamp(1.35rem, 2.6vw, 1.85rem); line-height: 1.2; overflow-wrap: anywhere; }
+.cost-result-base { margin-top: 0.4rem; color: #c5d2ce; font-size: 0.85rem; }
+.cost-result-base:empty { display: none; }
+
+/* Packaging and delivery */
+.pack-spec { padding: 0.65rem 0.85rem; border: 1px solid var(--line); background: var(--paper); font-weight: 600; }
+.pack-text { margin-top: 0.6rem; color: var(--ink-2); font-size: 0.92rem; }
+.pack-note { margin: 0.6rem 0 0.8rem; padding-left: 0.75rem; border-left: 3px solid var(--amber); font-size: 0.92rem; }
+.collect-option { margin-top: 0.8rem; }
+.field.is-disabled { opacity: 0.55; }
+.save-bar .stage1-actions { margin-top: 0; }
+
 /* Cost estimate */
-.cost-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin: 0; background: var(--line); border: 1px solid var(--line); }
-.cost-grid div { padding: 0.8rem 1rem; background: var(--white); }
-.cost-grid .cost-wide { grid-column: 1 / -1; }
-.cost-grid dt { color: var(--muted); font-size: 0.76rem; font-weight: 500; }
-.cost-grid dd { margin: 0.2rem 0 0; font-size: 1.15rem; font-weight: 600; }
-.cost-grid .cost-total { background: var(--ink); color: #fff; }
-.cost-grid .cost-total dt { color: #a9bab6; }
-.cost-grid .cost-total dd { font-size: clamp(1.6rem, 3vw, 2.1rem); }
 .cost-empty { margin-top: 0.6rem; color: var(--ink-2); font-weight: 600; }
 .disclaimer { margin-top: 0.8rem; padding-left: 0.75rem; border-left: 3px solid var(--amber); color: var(--ink-2); font-size: 0.88rem; font-weight: 500; }
 
@@ -414,15 +437,15 @@ section[tabindex="-1"]:focus { outline: none; }
 /* ---------- Responsive ---------- */
 @media (max-width: 860px) {
   .est-row, .est-row:nth-child(3), .stage2-grid { grid-template-columns: 1fr; }
-  /* When the row wraps, every item keeps a teal divider on its left so the rows stay even. */
-  .credentials-list { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 0.85rem; }
-  .credentials-list li { justify-content: flex-start; border-left: 2px solid var(--teal); }
+  .hero-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .est-tally { margin-left: 0; }
 }
 
 @media (max-width: 560px) {
-  .credentials-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .slider-row { grid-template-columns: 1fr; }
-  .slider-readout { grid-auto-flow: column; justify-content: space-between; align-items: baseline; text-align: left; }
+  /* Stack the three credentials, each keeping a teal divider on its left. */
+  .credentials-list { grid-template-columns: 1fr; row-gap: 0.6rem; }
+  .credentials-list li { justify-content: flex-start; border-left: 2px solid var(--teal); }
+  .price-pair { grid-template-columns: 1fr; }
   .progress-steps { font-size: 0.7rem; }
   .progress-steps li { flex-direction: column; gap: 0.2rem; text-align: center; }
   .progress-steps li:nth-child(1) { align-items: flex-start; text-align: left; }
@@ -455,14 +478,14 @@ section[tabindex="-1"]:focus { outline: none; }
   .visualiser { gap: 0.6rem; }
   .visual-panel figcaption { padding: 0.6rem 0.7rem; font-size: 0.82rem; }
   .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .check-grid, .radio-grid, .field-grid, .cost-grid { grid-template-columns: 1fr; }
+  .check-grid, .radio-grid, .field-grid { grid-template-columns: 1fr; }
   .summary-list { grid-template-columns: 1fr 1fr; }
   .faq-index { position: static; }
 }
 
 @media (max-width: 420px) {
-  .qty-input-row { grid-template-columns: 48px minmax(0, 1fr) 48px; }
-  .qty-field input { padding-right: 3.5rem; }
+  .qty-equation { grid-template-columns: 1fr; gap: 0.3rem; }
+  .qty-equals { padding: 0; text-align: center; }
   .summary-list { grid-template-columns: 1fr; }
 }
 

@@ -183,8 +183,12 @@
     els.summary('unit').textContent = local.unitPriceCents ? P.formatRand(requirements.targetUnitPriceCents) : '—';
     els.summary('pack').textContent = local.packPriceCents ? P.formatRand(requirements.targetPackPriceCents ?? local.packPriceCents) : '—';
     els.summary('total').textContent = total ? P.formatRand(total) : '—';
-    els.summary('packaging').textContent = requirements.packaging ? 'Required' : 'Not required';
-    els.summary('delivery').textContent = requirements.delivery ? 'Required' : 'Not required';
+    els.summary('packaging').textContent = requirements.packaging ? 'Yes' : 'No — plain white packs';
+    els.summary('delivery').textContent = !requirements.delivery
+      ? 'Collection'
+      : requirements.deliveryPoint
+        ? `To ${requirements.deliveryPoint}`
+        : 'Required — delivery point to be confirmed';
     els.summary('leadType').textContent = S.getLeadType(requirements.leadType)?.label || '—';
   }
 
@@ -201,7 +205,10 @@
     const check = S.validateRequirements(requirements);
     if (!check.ok) {
       if (check.errors.quantity) return showStage1Error(check.errors.quantity, $('[data-qty-input]'));
-      if (check.errors.leadType) return showStage1Error(check.errors.leadType, els.leadTypes[0]);
+      if (check.errors.leadType) {
+        return showStage1Error('Choose what best describes you (at the top of the page) before saving.', els.leadTypes[0]);
+      }
+      if (check.errors.deliveryPoint) return showStage1Error(check.errors.deliveryPoint, $('[data-req="deliveryPoint"]'));
       return showStage1Error('Please check your selections.');
     }
     showStage1Error('');

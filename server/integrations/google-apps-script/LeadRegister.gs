@@ -16,7 +16,7 @@
 
 var COLUMNS = ['Lead ID', 'Date', 'Name', 'Company', 'Location', 'Email', 'Phone', 'Quantity',
   'Unit Price', 'Total', 'Price Wanted', 'Pack Price Wanted', 'Estimated Selling Price',
-  'Packaging', 'Delivery', 'Lead Type', 'Status'];
+  'Stickers/Decals', 'Delivery', 'Delivery Point', 'Lead Type', 'Status'];
 
 // Statuses staff have moved a lead to; the website never overwrites these.
 var STAFF_STATUSES = ['Under Review', 'Contacted', 'Quoted', 'Won', 'Lost'];

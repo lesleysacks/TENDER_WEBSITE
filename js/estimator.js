@@ -19,6 +19,9 @@
   const els = {
     range: $('[data-qty-range]'),
     input: $('[data-qty-input]'),
+    packInput: $('[data-pack-input]'),
+    tallyPads: $('[data-tally-pads]'),
+    tallyPacks: $('[data-tally-packs]'),
     steps: $$('[data-qty-step]'),
     product: $('[data-visual-product]'),
     tierStage: $('[data-visual-tier]'),
@@ -26,16 +29,15 @@
     tierRange: $('[data-visual-tier-range]'),
     galleryToggle: $('[data-gallery-toggle]'),
     gallery: $('[data-gallery]'),
-    qtyPacks: $('[data-qty-packs]'),
     qtyLoose: $('[data-qty-loose]'),
     priceInput: $('[data-price-input]'),
     priceRange: $('[data-price-range]'),
     priceSteps: $$('[data-price-step]'),
     priceMin: $('[data-price-min]'),
     priceMax: $('[data-price-max]'),
-    pricePack: $('[data-price-pack]'),
-    costQuantity: $('[data-cost-quantity]'),
+    packPriceInput: $('[data-pack-price-input]'),
     costPacks: $('[data-cost-packs]'),
+    costBase: $('[data-cost-base]'),
     costUnit: $('[data-cost-unit]'),
     costTotal: $('[data-cost-total]'),
     costTier: $('[data-cost-tier]'),
@@ -43,13 +45,15 @@
     costTierNote: $('[data-cost-tier-note]'),
     costEmpty: $('[data-cost-empty]'),
     packaging: $('[data-req="packaging"]'),
-    delivery: $('[data-req="delivery"]'),
+    collect: $('[data-req="collect"]'),
+    deliveryPoint: $('[data-req="deliveryPoint"]'),
   };
 
   if (!els.range || !els.input) return;
 
   const PRICE = P.TARGET_PRICE;
-  const state = { quantity: 10000, targetCents: PRICE.defaultCents, packaging: false, delivery: false };
+  // delivery: true unless the customer ticks "I will arrange collection".
+  const state = { quantity: 10000, targetCents: PRICE.defaultCents, packaging: false, delivery: true, deliveryPoint: '' };
 
   const centsText = (cents) => (cents / 100).toFixed(2); // 30 -> "0.30" (input shows the R prefix)
   const packsText = (quantity) => {
@@ -78,15 +82,17 @@
       button.disabled = direction < 0 ? state.quantity <= Q.MIN_QUANTITY : state.quantity >= Q.MAX_QUANTITY;
     });
     const { packs, loose } = packsText(state.quantity);
-    els.qtyPacks.textContent = packs;
-    els.qtyLoose.textContent = loose ? `+ ${loose} loose pad${loose === 1 ? '' : 's'}` : 'packs';
+    if (source !== 'packs') els.packInput.value = packs;
+    els.qtyLoose.textContent = loose ? `${packs} packs + ${loose} single pad${loose === 1 ? '' : 's'}.` : '';
+    els.tallyPads.textContent = formatted;
+    els.tallyPacks.textContent = loose ? `${packs} + ${loose}` : packs;
   }
 
   function renderPriceControls(source) {
     if (source !== 'range') els.priceRange.value = String(state.targetCents);
     els.priceRange.setAttribute('aria-valuetext', `${P.formatRand(state.targetCents)} per pad`);
     if (source !== 'input') els.priceInput.value = centsText(state.targetCents);
-    els.pricePack.textContent = P.formatRand(state.targetCents * P.PACK_SIZE);
+    if (source !== 'pack') els.packPriceInput.value = centsText(state.targetCents * P.PACK_SIZE);
     els.priceSteps.forEach((button) => {
       const direction = Number(button.dataset.priceStep);
       button.disabled = direction < 0 ? state.targetCents <= PRICE.minCents : state.targetCents >= PRICE.maxCents;
@@ -116,11 +122,15 @@
     const ours = P.estimateSupplyCost(state.quantity);
     const wanted = P.estimateTargetPrice(state.quantity, state.targetCents);
     const { packs, loose } = packsText(state.quantity);
+    const packsLabel = `${packs} pack${packs === '1' ? '' : 's'}${loose ? ` + ${loose} single pad${loose === 1 ? '' : 's'}` : ''}`;
 
-    els.costQuantity.textContent = `${Q.formatQuantity(state.quantity)} pads`;
-    els.costPacks.textContent = loose ? `${packs} + ${loose} loose` : packs;
+    // "You asked for 1,200 packs = R3,600.00 — this is the base price for 1,200 packs at R3.00 per pack."
+    els.costPacks.textContent = packsLabel;
     els.costEmpty.hidden = wanted.hasEstimate;
     els.costTotal.textContent = wanted.hasEstimate ? P.formatRand(wanted.totalCents) : '—';
+    els.costBase.textContent = wanted.hasEstimate
+      ? `This is the base price for ${packsLabel} (${Q.formatQuantity(state.quantity)} pads) at ${P.formatRand(wanted.packPriceCents)} per pack.`
+      : '';
 
     // Our own indicative price, shown for reference next to the customer's chosen price.
     els.costUnit.textContent = P.formatRand(ours.hasEstimate ? ours.unitPriceCents : P.STARTING_UNIT_PRICE_CENTS);
@@ -198,6 +208,21 @@
   els.input.addEventListener('blur', () => {
     els.input.value = Q.formatQuantity(state.quantity);
   });
+
+  // Packs of 10: typing packs sets the pad quantity to packs × 10.
+  els.packInput.addEventListener('input', () => {
+    const packs = Q.parseQuantityInput(els.packInput.value);
+    setQuantity(packs === null ? 0 : packs * P.PACK_SIZE, 'packs');
+  });
+  els.packInput.addEventListener('blur', () => {
+    els.packInput.value = packsText(state.quantity).packs;
+  });
+  els.packInput.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      setQuantity(Q.stepQuantity(state.quantity, event.key === 'ArrowUp' ? 1 : -1));
+    }
+  });
   els.input.addEventListener('keydown', (event) => {
     if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
       event.preventDefault();
@@ -224,17 +249,43 @@
       setTargetPrice(state.targetCents + (event.key === 'ArrowUp' ? PRICE.stepCents : -PRICE.stepCents));
     }
   });
+  // Price per pack of 10: R3.50 per pack -> R0.35 per pad (rounded to the nearest cent per pad).
+  const packCentsToPad = (cents) => Math.round(cents / P.PACK_SIZE);
+  els.packPriceInput.addEventListener('input', () => {
+    const cents = P.parseRandInput(els.packPriceInput.value);
+    if (cents !== null && P.isValidTargetPrice(packCentsToPad(cents))) setTargetPrice(packCentsToPad(cents), 'pack');
+  });
+  els.packPriceInput.addEventListener('blur', () => {
+    const cents = P.parseRandInput(els.packPriceInput.value);
+    setTargetPrice(cents === null ? state.targetCents : packCentsToPad(cents));
+  });
+  els.packPriceInput.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      setTargetPrice(state.targetCents + (event.key === 'ArrowUp' ? PRICE.stepCents : -PRICE.stepCents));
+    }
+  });
   els.priceSteps.forEach((button) =>
     button.addEventListener('click', () => setTargetPrice(state.targetCents + Number(button.dataset.priceStep) * PRICE.stepCents))
   );
 
-  [els.packaging, els.delivery].forEach((checkbox) =>
+  function renderDelivery() {
+    els.deliveryPoint.disabled = !state.delivery;
+    els.deliveryPoint.closest('.field').classList.toggle('is-disabled', !state.delivery);
+  }
+
+  [els.packaging, els.collect].forEach((checkbox) =>
     checkbox.addEventListener('change', () => {
       state.packaging = els.packaging.checked;
-      state.delivery = els.delivery.checked;
+      state.delivery = !els.collect.checked;
+      renderDelivery();
       emit();
     })
   );
+  els.deliveryPoint.addEventListener('input', () => {
+    state.deliveryPoint = els.deliveryPoint.value;
+    emit();
+  });
 
   els.galleryToggle.addEventListener('click', () =>
     setGalleryOpen(els.galleryToggle.getAttribute('aria-expanded') !== 'true')
@@ -248,12 +299,16 @@
       targetUnitPriceCents: state.targetCents,
       packaging: state.packaging,
       delivery: state.delivery,
+      deliveryPoint: state.deliveryPoint.replace(/\s+/g, ' ').trim(),
     }),
     setRequirements(requirements) {
       state.packaging = Boolean(requirements.packaging);
       state.delivery = Boolean(requirements.delivery);
+      state.deliveryPoint = typeof requirements.deliveryPoint === 'string' ? requirements.deliveryPoint : '';
       els.packaging.checked = state.packaging;
-      els.delivery.checked = state.delivery;
+      els.collect.checked = !state.delivery;
+      els.deliveryPoint.value = state.deliveryPoint;
+      renderDelivery();
       if (P.isValidTargetPrice(requirements.targetUnitPriceCents)) state.targetCents = requirements.targetUnitPriceCents;
       renderPriceControls();
       setQuantity(requirements.quantity);
@@ -276,7 +331,9 @@
   buildGallery();
   setGalleryOpen(false);
   els.packaging.checked = state.packaging;
-  els.delivery.checked = state.delivery;
+  els.collect.checked = !state.delivery;
+  els.deliveryPoint.value = state.deliveryPoint;
+  renderDelivery();
   Object.assign(els.priceRange, { min: PRICE.minCents, max: PRICE.maxCents, step: PRICE.stepCents });
   els.priceMin.textContent = P.formatRand(PRICE.minCents);
   els.priceMax.textContent = P.formatRand(PRICE.maxCents);

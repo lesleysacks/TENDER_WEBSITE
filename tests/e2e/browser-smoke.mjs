@@ -160,8 +160,11 @@ try {
   check('"Calculate Your Supply" goes to the estimator', await waitFor('location.hash === "#calculator"'));
   await click('.cta-row a.btn-outline');
   check('"Request a Booking" goes to the guided quantity step', await waitFor('location.hash === "#quantity-step"'));
-  check('booking is described as an enquiry, not an order', /not a confirmed booking or order/.test(await text('.hero-note')));
-  check('We Specialise In is a strip right after the hero, all five items on one line', await evaluate('(() => { const s = document.querySelector(".hero + .credentials"); if (!s) return false; const tops = [...s.querySelectorAll(".credentials-list li")].map(li => Math.round(li.getBoundingClientRect().top)); return tops.length === 5 && new Set(tops).size === 1; })()'));
+  check('hero sub-heading says specialist manufacturers & suppliers', /Specialist manufacturers & suppliers\. Made in South Africa\./.test(await text('.hero-sub')));
+  check('booking disclaimer removed from the hero', !(await evaluate('!!document.querySelector(".hero-note")')));
+  check('"Which describes you?" options sit in the hero', (await evaluate('document.querySelectorAll(".hero input[name=leadType]").length')) === 4
+    && (await evaluate('document.querySelectorAll("input[name=leadType]").length')) === 4);
+  check('credentials strip: B-BBEE, SABS/SANS and Proudly South African on one line', await evaluate('(() => { const s = document.querySelector(".hero + .credentials"); if (!s) return false; const items = [...s.querySelectorAll(".credentials-list li")]; const tops = items.map(li => Math.round(li.getBoundingClientRect().top)); return items.length === 3 && new Set(tops).size === 1 && /B-BBEE/.test(items[0].textContent) && /SABS/.test(items[1].textContent) && /Proudly South African/.test(items[2].textContent); })()'));
   check('hero fact row removed', !(await evaluate('!!document.querySelector(".hero-facts")')));
   check('estimator steps sit side by side on desktop', await evaluate('(() => { const a = document.querySelector("#quantity-step").getBoundingClientRect(), b = document.querySelector("#cost-title").closest("section").getBoundingClientRect(); return Math.abs(a.top - b.top) < 2 && b.left > a.right - 1; })()'));
 
@@ -170,20 +173,28 @@ try {
   check('typed quantity syncs the slider', (await evaluate('document.querySelector("[data-qty-range]").value')) === String(require('../../shared/quantity.js').quantityToSlider(250000)));
   check('cost estimate uses R0.30 × quantity', (await text('[data-cost-total]')) === 'R75,000.00' && (await text('[data-cost-unit]')) === 'R0.30');
   check('pricing tier shown', (await text('[data-cost-tier]')) === 'Pallet supply');
-  check('slider 1: packs of 10 shown next to loose pads', (await text('[data-qty-packs]')) === '25,000');
+  check('pads = packs: packs box follows typed pads', (await evaluate('document.querySelector("[data-pack-input]").value')) === '25,000');
+  check('tally above the estimator shows Pads = and Packs =', (await text('[data-tally-pads]')) === '250,000' && (await text('[data-tally-packs]')) === '25,000');
+  check('"You asked for 25,000 packs = R75,000.00"', (await text('.cost-result-main')) === '25,000 packs = R75,000.00'
+    && /This is the base price for 25,000 packs \(250,000 pads\) at R3\.00 per pack\./.test(await text('[data-cost-base]')));
+  await type('[data-pack-input]', '1,200');
+  check('typing packs sets single pads (1,200 packs = 12,000 pads)', (await evaluate('document.querySelector("[data-qty-input]").value')) === '12,000'
+    && (await text('.cost-result-main')) === '1,200 packs = R3,600.00');
   await type('[data-qty-input]', '25');
-  check('slider 1: loose remainder shown', (await text('[data-qty-packs]')) === '2' && /\+ 5 loose pads/.test(await text('[data-qty-loose]')));
+  check('single pads that are not a full pack are shown', (await evaluate('document.querySelector("[data-pack-input]").value')) === '2' && /2 packs \+ 5 single pads/.test(await text('[data-qty-loose]')));
   await type('[data-qty-input]', '250,000');
-  check('slider 2: price you want defaults to R0.30 with R3.00 per pack', (await evaluate('document.querySelector("[data-price-input]").value')) === '0.30' && (await text('[data-price-pack]')) === 'R3.00');
+  check('price defaults to R0.30 per pad and R3.00 per pack', (await evaluate('document.querySelector("[data-price-input]").value')) === '0.30' && (await evaluate('document.querySelector("[data-pack-price-input]").value')) === '3.00');
   await type('[data-price-input]', '0.35');
-  check('slider 2: typed price updates slider, price per pack and selling price',
+  check('typed price per pad updates slider, price per pack and total',
     (await evaluate('document.querySelector("[data-price-range]").value')) === '35'
-    && (await text('[data-price-pack]')) === 'R3.50'
+    && (await evaluate('document.querySelector("[data-pack-price-input]").value')) === '3.50'
     && (await text('[data-cost-total]')) === 'R87,500.00');
+  await type('[data-pack-price-input]', '4.00');
+  check('typed price per pack sets the price per pad', (await evaluate('document.querySelector("[data-price-input]").value')) === '0.40' && (await text('[data-cost-total]')) === 'R100,000.00');
   await evaluate('(() => { const r = document.querySelector("[data-price-range]"); r.value = "25"; r.dispatchEvent(new Event("input", { bubbles: true })); })()');
-  check('slider 2: dragging the price updates the input and flags prices below ours',
+  check('dragging the price updates both inputs and flags prices below ours',
     (await evaluate('document.querySelector("[data-price-input]").value')) === '0.25'
-    && (await text('[data-price-pack]')) === 'R2.50'
+    && (await evaluate('document.querySelector("[data-pack-price-input]").value')) === '2.50'
     && /below our current price/.test(await text('[data-cost-compare]')));
   await type('[data-price-input]', '0.30');
   check('visualiser shows the pallet tier', (await evaluate('document.querySelector("[data-visual-tier]").dataset.tier')) === 'pallet');
@@ -211,10 +222,14 @@ try {
 
   // ---- Requirements + Stage 1 ----
   await type('[data-qty-input]', '25000');
+  check('packaging explains plain white heat-sealed packs and no printing', /heat-sealed in plain white plastic/.test(await text('.pack-spec')) && /we do not print/.test(await text('.pack-note')));
   await click('[data-req="packaging"]');
-  await click('[data-req="delivery"]');
+  await click('[data-req="collect"]');
+  check('ticking collection disables the delivery point', await evaluate('document.querySelector("[data-req=deliveryPoint]").disabled'));
+  await click('[data-req="collect"]');
+  await type('[data-req="deliveryPoint"]', 'Polokwane district depot');
   await click('[data-save-draft]');
-  check('qualifying answer is required before saving', /Choose the option/.test(await text('[data-stage1-error]')) && store.list().length === 0);
+  check('qualifying answer is required before saving', /Choose what best describes you/.test(await text('[data-stage1-error]')) && store.list().length === 0);
   check('progress starts at 0%', /^0%/.test(await text('[data-progress-text]')));
 
   await click('input[name="leadType"][value="tender-secured"]');
@@ -225,7 +240,8 @@ try {
   check('progress shows 50%', /^50%/.test(await text('[data-progress-text]')));
   const draft = store.list()[0];
   check('draft stored server-side with a PLH reference', draft && draft.status === 'DRAFT' && /^PLH-[0-9A-F]{8}$/.test(draft.id));
-  check('draft captured packaging, delivery and qualifying answer', draft?.requirements.packaging && draft?.requirements.delivery && draft?.requirements.leadType === 'tender-secured');
+  check('draft captured stickers, delivery point and qualifying answer', draft?.requirements.packaging && draft?.requirements.delivery && draft?.requirements.deliveryPoint === 'Polokwane district depot' && draft?.requirements.leadType === 'tender-secured');
+  check('summary shows the delivery point', (await text('[data-summary="delivery"]')) === 'To Polokwane district depot');
   check('summary shows the estimate', (await text('[data-summary="total"]')) === 'R7,500.00');
   check('summary shows price per pack of 10', (await text('[data-summary="pack"]')) === 'R3.00' && /2,500 packs of 10/.test(await text('[data-summary="quantity"]')));
 

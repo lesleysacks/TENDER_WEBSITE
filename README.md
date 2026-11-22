@@ -14,7 +14,9 @@ npm run test:e2e   # headless Chrome/Edge journey test + screenshots in tests/e2
 ```
 
 The site can no longer be hosted as static files only: lead capture needs the Node server
-(any host that runs Node, behind HTTPS).
+(any host that runs Node, behind HTTPS, with a persistent disk). A static host such as Vercel shows the
+pages but cannot save enquiries. **See [docs/DEPLOY.md](docs/DEPLOY.md)** (Render Blueprint in `render.yaml`,
+or a VPS with `deploy/pureline.service` + Cloudflare Tunnel).
 
 ## Structure
 
@@ -33,6 +35,7 @@ The site can no longer be hosted as static files only: lead capture needs the No
 | `js/site.js` | Mobile navigation, hero background image |
 | `server/` | HTTP server, lead service, file store, rate limiting, integrations, staff CLI |
 | `docs/ASSET-REGISTER.md` | Internal asset attribution and permissions register |
+| `docs/DEPLOY.md`, `render.yaml`, `deploy/` | Hosting guide, Render Blueprint, systemd unit |
 | `tests/` | `node:test` suites and the browser end-to-end test |
 
 ## Pricing
@@ -42,14 +45,16 @@ Only the **R0.30 per pad** starting price is confirmed. `shared/pricing.js` defi
 To approve a tier, change its `unitPriceCents` and set `approved: true`. The server recalculates every price;
 values sent by the browser are ignored.
 
-The estimator has two sliders: **loose pads** (shown as packs of 10, `PACK_SIZE`) and **price you want per pad**
-(shown as the price per pack of 10). The estimated selling price is quantity × chosen price. The chosen-price range
+The estimator asks **how many** (type single pads or packs of 10, `PACK_SIZE`; the two boxes stay in sync) and
+**how much you want to pay** (per pad or per pack of 10). It shows "You asked for 1,200 packs = R3,600.00",
+the base price for that quantity at the chosen price (quantity × chosen price). The chosen-price range
 (`TARGET_PRICE`, currently R0.10–R3.00, default R0.30) is a placeholder awaiting approval. The chosen price is saved
 with the enquiry (`targetUnitPriceCents`, `targetPackPriceCents`, `targetTotalCents`) alongside our indicative price.
 
 ## Lead lifecycle
 
-1. **Stage 1 (50%)** — quantity, packaging, delivery and the qualifying answer are saved via `POST /api/leads`.
+1. **Stage 1 (50%)** — quantity, chosen price, stickers/decals, delivery (or collection), the optional delivery
+   point and the qualifying answer ("Which describes you?", asked in the hero) are saved via `POST /api/leads`.
    The server generates a random reference (`PLH-` + 8 hex characters from the OS CSPRNG), recalculates
    the estimate and stores the lead as `DRAFT` with a creation timestamp and a snapshot of the original draft.
    The browser receives a random edit token (stored only as a hash) so only it can update that draft.

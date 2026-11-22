@@ -84,9 +84,10 @@ test('full two-stage journey: draft (50%) then submission (100%)', async (t) => 
   // Going back to adjust the quantity updates the same draft.
   const patched = await app.call('PATCH', `/api/leads/${lead.reference}`, {
     token: editToken,
-    body: { requirements: { ...REQUIREMENTS, quantity: 40000, packaging: false } },
+    body: { requirements: { ...REQUIREMENTS, quantity: 40000, packaging: false, deliveryPoint: '  Polokwane depot ' } },
   });
   assert.equal(patched.status, 200);
+  assert.equal(patched.json.lead.requirements.deliveryPoint, 'Polokwane depot');
   assert.equal(patched.json.lead.requirements.totalCents, 1200000);
 
   // Draft can be restored after a refresh.

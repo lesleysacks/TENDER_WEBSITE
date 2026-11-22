@@ -8,7 +8,7 @@ const path = require('node:path');
 const S = require('../shared/lead-schema');
 const ids = require('../server/lead-id');
 const { FileLeadStore } = require('../server/lead-store');
-const { toLeadRegisterRow, buildCustomerAcknowledgement, buildWhatsAppLink, signPayload } = require('../server/integrations');
+const { toLeadRegisterRow, buildCustomerAcknowledgement, buildInternalNotification, buildWhatsAppLink, signPayload } = require('../server/integrations');
 
 test('lead references look like PLH-8F3A92C7 and are unique', () => {
   const seen = new Set();
@@ -51,6 +51,11 @@ test('requirement validation', () => {
   assert.ok(S.validateRequirements({ ...good, leadType: 'other' }).errors.leadType);
   assert.ok(S.validateRequirements({ ...good, packaging: 'yes' }).errors.packaging);
   assert.equal(S.validateRequirements(null).ok, false);
+  // Delivery point is optional, cleaned and length-limited
+  assert.equal(S.validateRequirements(good).value.deliveryPoint, '');
+  assert.equal(S.validateRequirements({ ...good, deliveryPoint: '  Polokwane\n depot ' }).value.deliveryPoint, 'Polokwane depot');
+  assert.ok(S.validateRequirements({ ...good, deliveryPoint: 'x'.repeat(161) }).errors.deliveryPoint);
+  assert.ok(S.validateRequirements({ ...good, deliveryPoint: 42 }).errors.deliveryPoint);
 });
 
 test('contact validation: email required, phone recommended but optional, consent required', () => {
@@ -103,7 +108,7 @@ test('lead register row matches the Google Sheets columns', () => {
     contact: { fullName: 'A Buyer', company: 'Org', location: 'Durban', email: 'a@b.co.za', phone: '' },
   };
   const row = toLeadRegisterRow(lead);
-  assert.deepEqual(Object.keys(row), ['Lead ID', 'Date', 'Name', 'Company', 'Location', 'Email', 'Phone', 'Quantity', 'Unit Price', 'Total', 'Price Wanted', 'Pack Price Wanted', 'Estimated Selling Price', 'Packaging', 'Delivery', 'Lead Type', 'Status']);
+  assert.deepEqual(Object.keys(row), ['Lead ID', 'Date', 'Name', 'Company', 'Location', 'Email', 'Phone', 'Quantity', 'Unit Price', 'Total', 'Price Wanted', 'Pack Price Wanted', 'Estimated Selling Price', 'Stickers/Decals', 'Delivery', 'Delivery Point', 'Lead Type', 'Status']);
   assert.equal(row['Price Wanted'], 'R0.25');
   assert.equal(row['Pack Price Wanted'], 'R2.50');
   assert.equal(row['Estimated Selling Price'], 'R5,000.00');
@@ -111,7 +116,13 @@ test('lead register row matches the Google Sheets columns', () => {
   assert.equal(row.Total, 'R6,000.00');
   assert.equal(row['Lead Type'], 'Tender');
   assert.equal(row.Status, 'Submitted');
+  assert.equal(row.Delivery, 'Collect');
+  assert.equal(row['Delivery Point'], '');
   assert.match(buildCustomerAcknowledgement(lead).text, /not a confirmed order or booking/);
+  // WhatsApp consent is stored on lead.consent, not lead.contact
+  const optedIn = { ...lead, submittedAt: lead.createdAt, consent: { whatsappFollowUp: true } };
+  assert.match(buildInternalNotification(optedIn).text, /WhatsApp follow-up permitted: Yes/);
+  assert.match(buildInternalNotification({ ...optedIn, consent: { whatsappFollowUp: false } }).text, /WhatsApp follow-up permitted: No/);
 });
 
 test('WhatsApp links only exist for a configured number and carry the reference', () => {

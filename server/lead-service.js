@@ -39,6 +39,7 @@ function priceRequirements(requirements) {
     targetTotalCents: target.totalCents,
     packaging: requirements.packaging,
     delivery: requirements.delivery,
+    deliveryPoint: requirements.deliveryPoint || '',
     leadType: requirements.leadType,
   };
 }
