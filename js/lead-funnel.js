@@ -150,7 +150,10 @@
       let result;
       try {
         result = await appsScriptRequest(method, path, body);
-      } catch {
+      } catch (error) {
+        // Usually the web app is not deployed with "Who has access: Anyone", so Google answers with a
+        // sign-in page instead of JSON and the browser blocks it.
+        console.warn(`[enquiry] Could not reach the Apps Script web app (${APPS_SCRIPT}). Open that URL in a private window: it should show {"ok":true}. If it asks you to sign in, redeploy with "Who has access: Anyone".`, error);
         throw Object.assign(new Error('We could not reach our server. Your selections are still here — please try again.'), { code: 'network' });
       }
       if (!result.ok) {

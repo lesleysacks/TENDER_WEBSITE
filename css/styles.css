@@ -139,18 +139,27 @@ section[tabindex="-1"]:focus { outline: none; }
 .hero-note { max-width: 34rem; margin-top: 0.8rem; color: #9fb1ad; font-size: 0.82rem; }
 
 /* Qualifying question in the hero ("Which describes you?") */
-.hero-qualify { max-width: 40rem; margin: 1.3rem 0 0; padding: 0; border: 0; min-width: 0; }
-.hero-qualify legend { padding: 0; margin-bottom: 0.5rem; color: #c5d2ce; font-size: 0.85rem; font-weight: 600; }
-.hero-options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; }
+.hero-qualify { max-width: 40rem; margin: 1.4rem 0 0; padding: 0; border: 0; min-width: 0; }
+.hero-qualify legend { padding: 0; margin-bottom: 0.6rem; color: #fff; font-size: 1rem; font-weight: 700; }
+.hero-qualify legend::after { content: " (choose one)"; color: var(--aqua); font-weight: 500; font-size: 0.85rem; }
+.hero-options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; }
 .hero-option {
-  display: flex; align-items: center; gap: 0.5rem; min-height: 44px;
-  padding: 0.5rem 0.7rem; border: 1px solid rgb(255 255 255 / 35%); background: rgb(20 35 42 / 55%);
-  color: #fff; font-size: 0.85rem; font-weight: 500; line-height: 1.25; cursor: pointer;
-  transition: border-color 160ms ease, background-color 160ms ease;
+  display: flex; align-items: center; gap: 0.6rem; min-height: 52px;
+  padding: 0.55rem 0.75rem; border: 2px solid var(--aqua); border-radius: 4px; background: rgb(255 255 255 / 10%);
+  color: #fff; font-size: 0.9rem; font-weight: 600; line-height: 1.25; cursor: pointer;
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
 }
-.hero-option:hover { border-color: var(--aqua); }
-.hero-option:has(input:checked) { border-color: var(--aqua); background: rgb(47 111 104 / 70%); }
-.hero-option input { flex: none; width: 1rem; height: 1rem; margin: 0; accent-color: var(--aqua); }
+.hero-option:hover { background: rgb(159 216 207 / 22%); box-shadow: 0 0 0 3px rgb(159 216 207 / 25%); }
+.hero-option:has(input:checked) { border-color: var(--amber); background: var(--teal); box-shadow: 0 0 0 3px rgb(217 164 65 / 45%); }
+/* A large, high-contrast radio circle that is easy to spot on the dark hero */
+.hero-option input {
+  appearance: none; -webkit-appearance: none; flex: none; display: grid; place-content: center;
+  width: 1.35rem; height: 1.35rem; margin: 0; border: 2px solid #fff; border-radius: 50%; background: rgb(20 35 42 / 60%); cursor: pointer;
+}
+.hero-option input::before { content: ""; width: 0.65rem; height: 0.65rem; border-radius: 50%; background: var(--amber); transform: scale(0); transition: transform 120ms ease; }
+.hero-option input:checked { border-color: var(--amber); background: #fff; }
+.hero-option input:checked::before { transform: scale(1); }
+.hero-option input:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
 
 /* "We Specialise In" — one row directly under the hero */
 .credentials { background: var(--white); border-bottom: 1px solid var(--line); }
@@ -535,6 +544,8 @@ section[tabindex="-1"]:focus { outline: none; }
 @media (forced-colors: active) {
   .btn, .check-option, .radio-option, .qty-step, .gallery-item { border: 1px solid ButtonText; }
   .progress-fill { background: Highlight; }
+  .hero-option input { appearance: auto; -webkit-appearance: auto; }
+  .hero-option input::before { display: none; }
 }
 
 @media print {
