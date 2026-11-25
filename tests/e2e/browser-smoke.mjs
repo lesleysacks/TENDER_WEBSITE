@@ -172,28 +172,37 @@ try {
   await click('.cta-row a.btn-primary');
   check('"Calculate Your Supply" goes to the estimator', await waitFor('location.hash === "#calculator"'));
   await click('.cta-row a.btn-outline');
-  check('"Request a Booking" goes to the guided quantity step', await waitFor('location.hash === "#quantity-step"'));
-  check('hero sub-heading says specialist manufacturers & suppliers', /Specialist manufacturers & suppliers\. Made in South Africa\./.test(await text('.hero-sub')));
+  check('"Request a Quote" goes to the guided quantity step', await waitFor('location.hash === "#quantity-step"'));
+  check('hero sub-heading says specialist manufacturers & suppliers of feminine hygiene products', (await text('.hero-sub')) === 'Specialist manufacturers & suppliers of Feminine Hygiene Products.'
+    && (await text('.hero-text')) === 'We are geared to supply quantities that meet your needs.'
+    && (await text('.cta-row a.btn-outline')) === 'Request a Quote');
+  check('Step 1 is the card heading with "Tick the box that best describes you."', (await text('#lead-type .hero-step')) === 'Step 1'
+    && (await text('#lead-type .hero-question')) === 'Tick the box that best describes you.' && (await text('#lead-type .hero-choose')) === 'Choose one');
   check('booking disclaimer removed from the hero', !(await evaluate('!!document.querySelector(".hero-note")')));
   check('"Which describes you?" options sit in the hero', (await evaluate('document.querySelectorAll(".hero input[name=leadType]").length')) === 4
     && (await evaluate('document.querySelectorAll("input[name=leadType]").length')) === 4);
-  check('credentials strip: B-BBEE, SABS/SANS and Proudly South African on one line', await evaluate('(() => { const s = document.querySelector(".hero + .credentials"); if (!s) return false; const items = [...s.querySelectorAll(".credentials-list li")]; const tops = items.map(li => Math.round(li.getBoundingClientRect().top)); return items.length === 3 && new Set(tops).size === 1 && /B-BBEE/.test(items[0].textContent) && /SABS/.test(items[1].textContent) && /Proudly South African/.test(items[2].textContent); })()'));
-  check('credentials show the B-BBEE, SABS and Proudly South African logos', await evaluate('(() => { const imgs = [...document.querySelectorAll(".credentials-list img.cred-logo")]; return imgs.length === 3 && imgs.every(i => i.complete && i.naturalWidth > 0) && /b-bbee/.test(imgs[0].src) && /sabs/.test(imgs[1].src) && /proudly-south-african/.test(imgs[2].src); })()'));
+  check('credentials strip: B-BBEE, SABS/SANS and Proudly South African on one line', await evaluate('(() => { const s = document.querySelector(".hero + .credentials"); if (!s) return false; const items = [...s.querySelectorAll(".credentials-list li")]; const tops = items.map(li => Math.round(li.getBoundingClientRect().top)); return items.length === 3 && new Set(tops).size === 1 && /B-BBEE/.test(items[0].textContent) && /SANS 1043 2026 compliant.*Tested by SABS laboratory/.test(items[1].textContent) && /Proudly South African/.test(items[2].textContent) && !/Local pad manufacturing/.test(s.textContent) && /Certified Level 2 · 100% Women Owned/.test(items[0].textContent); })()'));
+  check('credentials show the B-BBEE and Proudly South African logos, no SABS logo', await evaluate('(() => { const imgs = [...document.querySelectorAll(".credentials-list img.cred-logo")]; return imgs.length === 2 && imgs.every(i => i.complete && i.naturalWidth > 0) && /b-bbee/.test(imgs[0].src) && /proudly-south-african/.test(imgs[1].src); })()'));
+  check('note: pads packed in sealed bags of 10', (await text('.cred-pack-note')) === 'Pads are packed in sealed bags containing 10 pads each.');
+  check('estimator header and Step 01 ask for packs of ten', (await text('.est-tagline')) === "Let's get going! Tell us what you need:" && (await text('#qty-title')) === 'How many packs of ten do you need?');
+  check('packs box comes first, before single pads', await evaluate('(() => { const boxes = [...document.querySelectorAll(".qty-equation .qty-box")]; return !!boxes[0].querySelector("[data-pack-input]") && !!boxes[1].querySelector("[data-qty-input]"); })()'));
+  check('price per pack comes first, before price per pad', await evaluate('(() => { const c = [...document.querySelectorAll(".price-pair .price-control")]; return !!c[0].querySelector("[data-pack-price-input]") && !!c[1].querySelector("[data-price-input]"); })()'));
+  check('our starting-price hint and tier note are gone', !(await evaluate('!!document.querySelector("#price-hint, [data-cost-tier-note], [data-cost-unit]")')));
   check('hero fact row removed', !(await evaluate('!!document.querySelector(".hero-facts")')));
   check('estimator steps sit side by side on desktop', await evaluate('(() => { const a = document.querySelector("#quantity-step").getBoundingClientRect(), b = document.querySelector("#cost-title").closest("section").getBoundingClientRect(); return Math.abs(a.top - b.top) < 2 && b.left > a.right - 1; })()'));
 
   // ---- Quantity ↔ slider ↔ visualiser ↔ cost ----
   await type('[data-qty-input]', '250,000');
   check('typed quantity syncs the slider', (await evaluate('document.querySelector("[data-qty-range]").value')) === String(require('../../shared/quantity.js').quantityToSlider(250000)));
-  check('cost estimate uses R0.30 × quantity', (await text('[data-cost-total]')) === 'R75,000.00' && (await text('[data-cost-unit]')) === 'R0.30');
-  check('pricing tier shown', (await text('[data-cost-tier]')) === 'Pallet supply');
+  check('cost estimate uses R0.30 × quantity', (await text('[data-cost-total]')) === 'R75,000.00');
   check('pads = packs: packs box follows typed pads', (await evaluate('document.querySelector("[data-pack-input]").value')) === '25,000');
   check('tally above the estimator shows Pads = and Packs =', (await text('[data-tally-pads]')) === '250,000' && (await text('[data-tally-packs]')) === '25,000');
-  check('"You asked for 25,000 packs = R75,000.00"', (await text('.cost-result-main')) === '25,000 packs = R75,000.00'
-    && /This is the base price for 25,000 packs \(250,000 pads\) at R3\.00 per pack\./.test(await text('[data-cost-base]')));
+  check('"You asked for 25,000 packs at your required price of R3.00 per pack. This comes to R75,000.00"',
+    (await text('.cost-result-kicker')) === 'You asked for 25,000 packs at your required price of R3.00 per pack.'
+    && (await text('.cost-result-main')) === 'This comes to R75,000.00' && (await text('[data-cost-base]')) === '250,000 pads in total.');
   await type('[data-pack-input]', '1,200');
   check('typing packs sets single pads (1,200 packs = 12,000 pads)', (await evaluate('document.querySelector("[data-qty-input]").value')) === '12,000'
-    && (await text('.cost-result-main')) === '1,200 packs = R3,600.00');
+    && (await text('.cost-result-main')) === 'This comes to R3,600.00');
   await type('[data-qty-input]', '25');
   check('single pads that are not a full pack are shown', (await evaluate('document.querySelector("[data-pack-input]").value')) === '2' && /2 packs \+ 5 single pads/.test(await text('[data-qty-loose]')));
   await type('[data-qty-input]', '250,000');
@@ -206,10 +215,14 @@ try {
   await type('[data-pack-price-input]', '4.00');
   check('typed price per pack sets the price per pad', (await evaluate('document.querySelector("[data-price-input]").value')) === '0.40' && (await text('[data-cost-total]')) === 'R100,000.00');
   await evaluate('(() => { const r = document.querySelector("[data-price-range]"); r.value = "25"; r.dispatchEvent(new Event("input", { bubbles: true })); })()');
-  check('dragging the price updates both inputs and flags prices below ours',
+  check('dragging the price updates both inputs',
     (await evaluate('document.querySelector("[data-price-input]").value')) === '0.25'
-    && (await evaluate('document.querySelector("[data-pack-price-input]").value')) === '2.50'
-    && /below our current price/.test(await text('[data-cost-compare]')));
+    && (await evaluate('document.querySelector("[data-pack-price-input]").value')) === '2.50');
+  await type('[data-pack-input]', '4,050');
+  await type('[data-pack-price-input]', '3.50');
+  check('4,050 packs at R3.50 a pack comes to R14,175.00', (await text('.cost-result-kicker')) === 'You asked for 4,050 packs at your required price of R3.50 per pack.'
+    && (await text('.cost-result-main')) === 'This comes to R14,175.00');
+  await type('[data-qty-input]', '250,000');
   await type('[data-price-input]', '0.30');
   check('visualiser shows the pallet tier', (await evaluate('document.querySelector("[data-visual-tier]").dataset.tier')) === 'pallet');
   check('pallet tier shows the supplied photo', await waitFor('(() => { const i = document.querySelector("[data-visual-tier] img"); return !!i && /pallets\\.webp/.test(i.src) && i.complete && i.naturalWidth > 0; })()'));
@@ -240,7 +253,8 @@ try {
 
   // ---- Requirements + Stage 1 ----
   await type('[data-qty-input]', '25000');
-  check('packaging explains plain white heat-sealed packs and no printing', /heat-sealed in plain white plastic/.test(await text('.pack-spec')) && /we do not print/.test(await text('.pack-note')));
+  check('packaging explains sticker customisation at extra cost', (await text('.pack-text')) === 'Packs can be customised using stickers to suit your requirements. This is an additional cost and varies according to the level of customization you require.'
+    && !(await evaluate('!!document.querySelector(".pack-spec, .pack-note")')));
   await click('[data-req="packaging"]');
   await click('[data-req="collect"]');
   check('ticking collection disables the delivery point', await evaluate('document.querySelector("[data-req=deliveryPoint]").disabled'));

@@ -146,12 +146,11 @@ section[tabindex="-1"]:focus { outline: none; }
   background: var(--white); color: var(--ink); box-shadow: 0 14px 34px rgb(0 0 0 / 35%);
 }
 .hero-qualify legend { display: contents; }
-.hero-step {
-  display: inline-block; margin-bottom: 0.35rem; padding: 0.15rem 0.55rem; border-radius: 999px;
-  background: var(--amber); color: var(--ink); font-family: var(--mono); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
-}
+.hero-step-row { display: flex; align-items: center; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 0.3rem; }
+/* "Step 1" is the card's heading */
+.hero-step { display: block; color: var(--ink); font-size: clamp(1.6rem, 3vw, 2.1rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; }
 .hero-required {
-  display: inline-block; margin: 0 0 0.35rem 0.4rem; padding: 0.15rem 0.55rem; border-radius: 999px;
+  display: inline-block; margin: 0; padding: 0.15rem 0.55rem; border-radius: 999px;
   background: var(--error); color: #fff; font-family: var(--mono); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
 }
 .hero-qualify:has(input:checked) .hero-required { background: var(--teal); }
@@ -166,7 +165,7 @@ section[tabindex="-1"]:focus { outline: none; }
   0%, 100% { opacity: 0.25; box-shadow: 0 0 0 0 rgb(217 164 65 / 0%); }
   50% { opacity: 1; box-shadow: 0 0 0 10px rgb(217 164 65 / 22%); }
 }
-.hero-question { display: block; color: var(--ink); font-size: clamp(1.35rem, 2.4vw, 1.7rem); font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
+.hero-question { display: block; color: var(--ink-2); font-size: clamp(1.05rem, 1.8vw, 1.25rem); font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
 .hero-choose { display: block; margin: 0.2rem 0 0.8rem; color: var(--teal-dark); font-size: 0.9rem; font-weight: 600; }
 .hero-options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; }
 .hero-option {
@@ -205,7 +204,8 @@ section[tabindex="-1"]:focus { outline: none; }
 .credentials-list .icon { flex: none; }
 /* Official marks: shown at a fixed height, width follows each logo's shape. */
 .cred-logo { flex: none; width: auto; height: 34px; }
-.cred-logo-wide { height: 26px; }
+.cred-tick { flex: none; width: 34px; height: 34px; color: var(--teal); }
+.cred-pack-note { margin: 0.75rem 0 0; padding-top: 0.7rem; border-top: 1px solid var(--line); color: var(--ink-2); font-size: 0.9rem; font-weight: 600; text-align: center; }
 .cred-logo-round { height: 52px; }
 .credentials-list strong { display: block; font-size: 0.9rem; font-weight: 600; line-height: 1.25; }
 .credentials-list small { display: block; color: var(--muted); font-size: 0.76rem; line-height: 1.35; }
@@ -263,7 +263,11 @@ section[tabindex="-1"]:focus { outline: none; }
 .price-field input:focus-visible { outline-offset: 0; border-color: var(--teal); }
 
 /* Quantity: single pads = packs of 10 (compact) */
-.qty-equation { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: end; gap: 0.6rem; }
+.qty-equation { display: grid; grid-template-columns: minmax(0, 1.4fr) auto minmax(0, 1fr); align-items: end; gap: 0.6rem; }
+/* Packs are what we sell: the packs box leads, the pad count follows */
+.qty-box-primary .qty-field input { min-height: 56px; border-color: var(--teal); border-width: 2px; font-size: 1.3rem; font-weight: 700; }
+.qty-box-primary .slider-label { color: var(--teal-dark); font-weight: 700; }
+.qty-box-secondary .qty-field input { color: var(--ink-2); }
 .qty-box { display: block; min-width: 0; }
 .qty-equals { padding-bottom: 0.55rem; color: var(--teal); font-family: var(--mono); font-size: 1.5rem; line-height: 1; }
 .qty-slider-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) 40px; align-items: center; gap: 0.6rem; margin-top: 0.8rem; }
@@ -340,19 +344,19 @@ section[tabindex="-1"]:focus { outline: none; }
 
 /* Price: per pad and per pack side by side */
 .price-pair { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 0.75rem; align-items: end; }
-.price-pack-control .price-field input { border-color: var(--teal); background: #eef6f3; }
+.price-pair .price-control:first-child .price-field input { border-color: var(--teal); border-width: 2px; font-weight: 700; }
+.price-pad-control .price-field input { background: var(--paper); color: var(--ink-2); }
 
 /* "You asked for 1,200 packs = R3,600.00" */
 .cost-result { margin-top: 1rem; padding: 0.9rem 1.1rem; background: var(--ink); color: #fff; }
-.cost-result-kicker { color: #a9bab6; font-size: 0.78rem; font-weight: 500; }
+.cost-result-kicker { color: #c5d2ce; font-size: 0.92rem; font-weight: 500; line-height: 1.4; }
+.cost-result-kicker strong { color: #fff; font-weight: 700; }
 .cost-result-main { margin-top: 0.15rem; font-size: clamp(1.35rem, 2.6vw, 1.85rem); line-height: 1.2; overflow-wrap: anywhere; }
 .cost-result-base { margin-top: 0.4rem; color: #c5d2ce; font-size: 0.85rem; }
 .cost-result-base:empty { display: none; }
 
 /* Packaging and delivery */
-.pack-spec { padding: 0.65rem 0.85rem; border: 1px solid var(--line); background: var(--paper); font-weight: 600; }
-.pack-text { margin-top: 0.6rem; color: var(--ink-2); font-size: 0.92rem; }
-.pack-note { margin: 0.6rem 0 0.8rem; padding-left: 0.75rem; border-left: 3px solid var(--amber); font-size: 0.92rem; }
+.pack-text { margin: 0.6rem 0 0.8rem; color: var(--ink-2); font-size: 0.92rem; }
 .collect-option { margin-top: 0.8rem; }
 .field.is-disabled { opacity: 0.55; }
 .save-bar .stage1-actions { margin-top: 0; }

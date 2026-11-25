@@ -389,7 +389,7 @@
     };
   }
 
-  /** Acknowledgement for the customer. It must not read as an order or booking confirmation. */
+  /** Acknowledgement for the customer. It must not read as an order confirmation. */
   function buildCustomerAcknowledgement(lead, businessEmail) {
     const contactAddress = businessEmail || DEFAULT_BUSINESS_EMAIL;
     return {
@@ -400,7 +400,7 @@
         'Thank you for choosing PureLine Hygiene. Your enquiry has been received and will be reviewed by our team.',
         `Your reference number is ${lead.id}.`,
         '',
-        'This is not a confirmed order or booking. We will contact you regarding your requirements.',
+        'This is a quote request, not a confirmed order. We will contact you regarding your requirements.',
         `Questions? Reply to this email or write to ${contactAddress}, quoting ${lead.id}.`,
         '',
         describeRequirements(lead),

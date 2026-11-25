@@ -125,7 +125,7 @@ test('lead register row matches the Google Sheets columns', () => {
   assert.equal(row.Delivery, 'Collect');
   assert.equal(row['Delivery point'], '');
   assert.equal(row['Staff notes'], '');
-  assert.match(buildCustomerAcknowledgement(lead).text, /not a confirmed order or booking/);
+  assert.match(buildCustomerAcknowledgement(lead).text, /quote request, not a confirmed order/);
   // WhatsApp consent is stored on lead.consent, not lead.contact
   const optedIn = { ...lead, submittedAt: lead.createdAt, consent: { whatsappFollowUp: true } };
   assert.match(buildInternalNotification(optedIn).text, /WhatsApp follow-up permitted: Yes/);

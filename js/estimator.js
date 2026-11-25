@@ -38,11 +38,8 @@
     packPriceInput: $('[data-pack-price-input]'),
     costPacks: $('[data-cost-packs]'),
     costBase: $('[data-cost-base]'),
-    costUnit: $('[data-cost-unit]'),
+    costPackPrice: $('[data-cost-pack-price]'),
     costTotal: $('[data-cost-total]'),
-    costTier: $('[data-cost-tier]'),
-    costCompare: $('[data-cost-compare]'),
-    costTierNote: $('[data-cost-tier-note]'),
     costEmpty: $('[data-cost-empty]'),
     packaging: $('[data-req="packaging"]'),
     collect: $('[data-req="collect"]'),
@@ -75,7 +72,7 @@
   function renderQuantityControls(source) {
     const formatted = Q.formatQuantity(state.quantity);
     if (source !== 'range') els.range.value = String(Q.quantityToSlider(state.quantity));
-    els.range.setAttribute('aria-valuetext', `${formatted} pads`);
+    els.range.setAttribute('aria-valuetext', `${packsText(state.quantity).packs} packs (${formatted} pads)`);
     if (source !== 'input') els.input.value = formatted;
     els.steps.forEach((button) => {
       const direction = Number(button.dataset.qtyStep);
@@ -90,7 +87,7 @@
 
   function renderPriceControls(source) {
     if (source !== 'range') els.priceRange.value = String(state.targetCents);
-    els.priceRange.setAttribute('aria-valuetext', `${P.formatRand(state.targetCents)} per pad`);
+    els.priceRange.setAttribute('aria-valuetext', `${P.formatRand(state.targetCents * P.PACK_SIZE)} per pack of 10`);
     if (source !== 'input') els.priceInput.value = centsText(state.targetCents);
     if (source !== 'pack') els.packPriceInput.value = centsText(state.targetCents * P.PACK_SIZE);
     els.priceSteps.forEach((button) => {
@@ -119,28 +116,16 @@
   }
 
   function renderCost() {
-    const ours = P.estimateSupplyCost(state.quantity);
     const wanted = P.estimateTargetPrice(state.quantity, state.targetCents);
     const { packs, loose } = packsText(state.quantity);
     const packsLabel = `${packs} pack${packs === '1' ? '' : 's'}${loose ? ` + ${loose} single pad${loose === 1 ? '' : 's'}` : ''}`;
 
-    // "You asked for 1,200 packs = R3,600.00 — this is the base price for 1,200 packs at R3.00 per pack."
+    // "You asked for 4,050 packs at your required price of R3.50 per pack. This comes to R14,175.00"
     els.costPacks.textContent = packsLabel;
+    els.costPackPrice.textContent = P.formatRand(state.targetCents * P.PACK_SIZE);
     els.costEmpty.hidden = wanted.hasEstimate;
     els.costTotal.textContent = wanted.hasEstimate ? P.formatRand(wanted.totalCents) : '—';
-    els.costBase.textContent = wanted.hasEstimate
-      ? `This is the base price for ${packsLabel} (${Q.formatQuantity(state.quantity)} pads) at ${P.formatRand(wanted.packPriceCents)} per pack.`
-      : '';
-
-    // Our own indicative price, shown for reference next to the customer's chosen price.
-    els.costUnit.textContent = P.formatRand(ours.hasEstimate ? ours.unitPriceCents : P.STARTING_UNIT_PRICE_CENTS);
-    els.costTier.textContent = ours.hasEstimate ? ours.tier.label : 'tier set by quantity';
-    els.costCompare.textContent =
-      ours.hasEstimate && state.targetCents < ours.unitPriceCents
-        ? 'Your price is below our current price; we will confirm what is possible in your quotation.'
-        : '';
-    els.costTierNote.textContent =
-      ours.hasEstimate && !ours.tier.approved ? 'Bulk tier pricing is awaiting approval.' : '';
+    els.costBase.textContent = wanted.hasEstimate ? `${Q.formatQuantity(state.quantity)} pads in total.` : '';
   }
 
   function setTargetPrice(cents, source) {
@@ -318,7 +303,7 @@
       return () => listeners.delete(listener);
     },
     focusQuantity() {
-      els.input.focus();
+      els.packInput.focus();
     },
   });
   window.PureLineEstimator = api;
@@ -335,8 +320,9 @@
   els.deliveryPoint.value = state.deliveryPoint;
   renderDelivery();
   Object.assign(els.priceRange, { min: PRICE.minCents, max: PRICE.maxCents, step: PRICE.stepCents });
-  els.priceMin.textContent = P.formatRand(PRICE.minCents);
-  els.priceMax.textContent = P.formatRand(PRICE.maxCents);
+  // The slider moves in 1c per pad = 10c per pack; its scale is shown per pack.
+  els.priceMin.textContent = `${P.formatRand(PRICE.minCents * P.PACK_SIZE)} / pack`;
+  els.priceMax.textContent = `${P.formatRand(PRICE.maxCents * P.PACK_SIZE)} / pack`;
   renderPriceControls();
   setQuantity(state.quantity);
 })();
