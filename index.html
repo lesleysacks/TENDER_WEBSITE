@@ -14,7 +14,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="css/styles.css?v=27" />
+    <link rel="stylesheet" href="css/styles.css?v=28" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -54,15 +54,15 @@
           <div class="hero-copy">
             <p class="eyebrow">Sanitary pad manufacturer · South Africa</p>
             <h1 id="hero-title">Congratulations on securing your tender!</h1>
-            <p class="hero-sub">Specialist manufacturers &amp; suppliers. Made in South Africa.</p>
-            <p class="hero-text">Bulk sanitary pads for government tenders. Estimate your supply in seconds.</p>
+            <p class="hero-sub">Specialist manufacturers &amp; suppliers of Feminine Hygiene Products.</p>
+            <p class="hero-text">We are geared to supply quantities that meet your needs.</p>
             <div class="cta-row">
               <a class="btn btn-primary" href="#calculator">Calculate Your Supply</a>
-              <a class="btn btn-outline" href="#quantity-step">Request a Booking</a>
+              <a class="btn btn-outline" href="#quantity-step">Request a Quote</a>
             </div>
             <!-- Qualifying question: part of the enquiry, asked up front -->
             <fieldset class="hero-qualify" id="lead-type">
-              <legend><span class="hero-step">Step 1</span><span class="hero-required">Required</span><span class="hero-question">Which describes you?</span><span class="hero-choose">Choose one</span></legend>
+              <legend><span class="hero-step-row"><span class="hero-step">Step 1</span><span class="hero-required">Required</span></span><span class="hero-question">Tick the box that best describes you.</span><span class="hero-choose">Choose one</span></legend>
               <div class="hero-options">
                 <label class="hero-option"><input type="radio" name="leadType" value="tender-secured" /><span>Secured a tender</span></label>
                 <label class="hero-option"><input type="radio" name="leadType" value="tender-preparing" /><span>Preparing a tender</span></label>
@@ -81,17 +81,18 @@
             <ul class="credentials-list">
               <li>
                 <img class="cred-logo" src="assets/logos/b-bbee.webp" width="442" height="112" alt="" decoding="async" />
-                <span><strong>B-BBEE</strong><small>Broad-based empowerment</small></span>
+                <span><strong>B-BBEE</strong><small>Certified Level 2 · 100% Women Owned</small></span>
               </li>
-              <li>
-                <img class="cred-logo cred-logo-wide" src="assets/logos/sabs.webp" width="483" height="112" alt="" decoding="async" />
-                <span><strong>SABS / SANS standards</strong><small>SABS approved products</small></span>
+              <li class="cred-text-only">
+                <svg class="cred-tick" viewBox="0 0 24 24" width="40" height="40" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="11" fill="currentColor"/><path d="M6.5 12.5l3.5 3.5 7.5-8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span><strong>SANS 1043 2026 compliant</strong><small>Tested by SABS laboratory</small></span>
               </li>
               <li>
                 <img class="cred-logo cred-logo-round" src="assets/logos/proudly-south-african.webp" width="175" height="160" alt="" decoding="async" />
-                <span><strong>Proudly South African</strong><small>Local pad manufacturing</small></span>
+                <span><strong>Proudly South African</strong></span>
               </li>
             </ul>
+            <p class="cred-pack-note">Pads are packed in sealed bags containing 10 pads each.</p>
         </div>
       </section>
 
@@ -102,7 +103,7 @@
             <div class="progress-head">
               <div>
                 <h2 id="estimator-title">Bulk sanitary pad estimator</h2>
-                <p class="est-tagline">You tell us what you want.</p>
+                <p class="est-tagline">Let's get going! Tell us what you need:</p>
               </div>
               <p class="est-tally mono" aria-live="polite">
                 <span>Pads = <strong data-tally-pads>10,000</strong></span>
@@ -124,23 +125,23 @@
             <!-- Step 1: quantity + visualiser -->
             <section class="est-step" id="quantity-step" aria-labelledby="qty-title" tabindex="-1">
               <p class="step-index mono">01</p>
-              <h3 id="qty-title">How many do you need?</h3>
-              <p class="step-lead">Fill in packs or single pads.</p>
+              <h3 id="qty-title">How many packs of ten do you need?</h3>
+              <p class="step-lead">Fill in the number of packs. We show the pad count for you.</p>
 
               <div class="qty-equation">
-                <label class="qty-box">
-                  <span class="slider-label">Single pads</span>
-                  <span class="qty-field">
-                    <input type="text" inputmode="numeric" autocomplete="off" data-qty-input aria-describedby="qty-hint" />
-                    <span class="qty-unit" aria-hidden="true">pads</span>
-                  </span>
-                </label>
-                <span class="qty-equals" aria-hidden="true">=</span>
-                <label class="qty-box">
+                <label class="qty-box qty-box-primary">
                   <span class="slider-label">Packs of 10</span>
                   <span class="qty-field">
                     <input type="text" inputmode="numeric" autocomplete="off" data-pack-input aria-describedby="qty-hint" />
                     <span class="qty-unit" aria-hidden="true">packs</span>
+                  </span>
+                </label>
+                <span class="qty-equals" aria-hidden="true">=</span>
+                <label class="qty-box qty-box-secondary">
+                  <span class="slider-label">Single pads</span>
+                  <span class="qty-field">
+                    <input type="text" inputmode="numeric" autocomplete="off" data-qty-input aria-describedby="qty-hint" />
+                    <span class="qty-unit" aria-hidden="true">pads</span>
                   </span>
                 </label>
               </div>
@@ -151,14 +152,14 @@
                 <button class="qty-step" type="button" data-qty-step="1" aria-label="Increase quantity">+</button>
               </div>
               <div class="range-scale mono" aria-hidden="true">
-                <span>0</span><span>250,000</span><span>1,000,000 pads</span>
+                <span>0</span><span>25,000</span><span>100,000 packs</span>
               </div>
               <p class="hint" id="qty-hint">Type in either box, drag, or use − / +. <span data-qty-loose></span></p>
 
               <div class="visualiser">
                 <figure class="visual-panel">
                   <div class="visual-stage visual-product" data-visual-product></div>
-                  <figcaption><span class="visual-kicker">Product</span>Individually wrapped pads</figcaption>
+                  <figcaption><span class="visual-kicker">Product</span>Individually wrapped pads, sold in packs of ten</figcaption>
                 </figure>
                 <figure class="visual-panel">
                   <div class="visual-stage visual-tier" data-visual-tier aria-live="polite"></div>
@@ -188,41 +189,36 @@
 
               <div class="price-pair">
                 <div class="price-control">
-                  <label class="slider-label" for="price-input">Your price per pad</label>
+                  <label class="slider-label" for="pack-price-input">Your price per pack of 10</label>
                   <div class="price-input-row">
-                    <button class="qty-step" type="button" data-price-step="-1" aria-label="Lower price by 1 cent">−</button>
+                    <button class="qty-step" type="button" data-price-step="-1" aria-label="Lower price by 10 cents per pack">−</button>
                     <span class="price-field">
                       <span class="price-prefix" aria-hidden="true">R</span>
-                      <input id="price-input" type="text" inputmode="decimal" autocomplete="off" data-price-input aria-describedby="price-hint" />
+                      <input id="pack-price-input" type="text" inputmode="decimal" autocomplete="off" data-pack-price-input />
                     </span>
-                    <button class="qty-step" type="button" data-price-step="1" aria-label="Raise price by 1 cent">+</button>
+                    <button class="qty-step" type="button" data-price-step="1" aria-label="Raise price by 10 cents per pack">+</button>
                   </div>
                 </div>
-                <div class="price-control price-pack-control">
-                  <label class="slider-label" for="pack-price-input">Your price per pack of 10</label>
+                <div class="price-control price-pad-control">
+                  <label class="slider-label" for="price-input">Works out per pad</label>
                   <span class="price-field">
                     <span class="price-prefix" aria-hidden="true">R</span>
-                    <input id="pack-price-input" type="text" inputmode="decimal" autocomplete="off" data-pack-price-input aria-describedby="price-hint" />
+                    <input id="price-input" type="text" inputmode="decimal" autocomplete="off" data-price-input />
                   </span>
                 </div>
               </div>
-              <label class="visually-hidden" for="price-range">Price per pad slider</label>
+              <label class="visually-hidden" for="price-range">Price per pack slider</label>
               <input id="price-range" class="qty-range" type="range" data-price-range />
               <div class="range-scale mono" aria-hidden="true">
                 <span data-price-min></span><span data-price-max></span>
               </div>
 
               <div class="cost-result" aria-live="polite">
-                <p class="cost-result-kicker">You asked for</p>
-                <p class="cost-result-main mono"><span data-cost-packs></span> = <span data-cost-total></span></p>
+                <p class="cost-result-kicker">You asked for <strong data-cost-packs></strong> at your required price of <strong data-cost-pack-price></strong> per pack.</p>
+                <p class="cost-result-main mono">This comes to <span data-cost-total></span></p>
                 <p class="cost-result-base" data-cost-base></p>
               </div>
               <p class="cost-empty" data-cost-empty hidden>Choose a quantity to see your estimate.</p>
-              <p class="hint" id="price-hint">
-                Our pricing starts at <span class="mono" data-cost-unit></span> per pad · <span data-cost-tier></span>.
-                <span data-cost-compare></span>
-              </p>
-              <p class="hint" data-cost-tier-note></p>
               <p class="disclaimer">Indicative estimate — final pricing is subject to confirmation.</p>
             </section>
           </div>
@@ -232,12 +228,10 @@
             <section class="est-step" aria-labelledby="pack-title">
               <p class="step-index mono">03</p>
               <h3 id="pack-title">Packaging</h3>
-              <p class="pack-spec">Our packs are heat-sealed in plain white plastic.</p>
-              <p class="pack-text">Packs can be made specific to your order using stickers or decals.</p>
-              <p class="pack-note"><strong>Please note: we do not print on packaging.</strong></p>
+              <p class="pack-text">Packs can be customised using stickers to suit your requirements. This is an additional cost and varies according to the level of customization you require.</p>
               <label class="check-option">
                 <input type="checkbox" data-req="packaging" />
-                <span>I would like stickers or decals on my packs.</span>
+                <span>I would like stickers on my packs.</span>
               </label>
             </section>
 
@@ -349,7 +343,7 @@
                 </div>
 
                 <div class="turnstile" data-turnstile hidden></div>
-                <p class="notice">This is an enquiry for review — not a confirmed order or booking.</p>
+                <p class="notice">This is a quote request for review — not a confirmed order.</p>
                 <button class="btn btn-primary" type="submit" data-submit-enquiry><span data-label>Submit My Enquiry</span></button>
                 <p class="form-status" data-form-status role="status"></p>
               </form>
@@ -368,7 +362,7 @@
               our team. Your reference number is <strong class="mono" data-confirmation-reference></strong>.
               We will contact you regarding your requirements.
             </p>
-            <p class="notice">This is an enquiry for review, not a confirmed order or booking.</p>
+            <p class="notice">This is a quote request for review, not a confirmed order.</p>
             <p class="confirm-contact">Questions? <a href="mailto:Nextgeneration.ai7.0@gmail.com" data-business-email>Email PureLine Hygiene</a> and quote your reference.</p>
             <div class="cta-row">
               <a class="btn btn-primary" data-whatsapp-link href="#" target="_blank" rel="noopener" hidden>Message us on WhatsApp</a>
@@ -386,14 +380,14 @@
       </div>
     </footer>
 
-    <script src="shared/quantity.js?v=27"></script>
-    <script src="shared/pricing.js?v=27"></script>
-    <script src="shared/lead-schema.js?v=27"></script>
-    <script src="js/site-config.js?v=27"></script>
-    <script src="js/visual-tiers.js?v=27"></script>
-    <script src="js/illustrations.js?v=27"></script>
-    <script src="js/site.js?v=27"></script>
-    <script src="js/estimator.js?v=27"></script>
-    <script src="js/lead-funnel.js?v=27"></script>
+    <script src="shared/quantity.js?v=28"></script>
+    <script src="shared/pricing.js?v=28"></script>
+    <script src="shared/lead-schema.js?v=28"></script>
+    <script src="js/site-config.js?v=28"></script>
+    <script src="js/visual-tiers.js?v=28"></script>
+    <script src="js/illustrations.js?v=28"></script>
+    <script src="js/site.js?v=28"></script>
+    <script src="js/estimator.js?v=28"></script>
+    <script src="js/lead-funnel.js?v=28"></script>
   </body>
 </html>
