@@ -63,7 +63,7 @@
   const tierImage = (tier) => {
     const src = photos.tiers && photos.tiers[tier.id];
     return src
-      ? `<img src="${src}" alt="${tier.label} — supply volume" loading="lazy" decoding="async" />`
+      ? `<img src="${src}" alt="${tier.label} of PureLine Hygiene sanitary pads (supply volume)" loading="lazy" decoding="async" />`
       : art.tierIllustration(tier.id, `Illustration: ${tier.label.toLowerCase()}`);
   };
 
@@ -311,7 +311,7 @@
   // ---------- Initial render ----------
 
   els.product.innerHTML = photos.product
-    ? `<img src="${photos.product}" alt="PureLine Hygiene sanitary pads, individually wrapped" loading="lazy" decoding="async" />`
+    ? `<img src="${photos.product}" alt="PureLine Hygiene sanitary pads, individually wrapped, sold in packs of 10" loading="lazy" decoding="async" />`
     : art.productIllustration();
   buildGallery();
   setGalleryOpen(false);

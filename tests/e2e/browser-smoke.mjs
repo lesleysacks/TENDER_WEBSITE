@@ -325,7 +325,7 @@ try {
   const faqCount = await evaluate('document.querySelectorAll(".faq-category details").length');
   check('FAQ page keeps a short, categorised list', faqCount >= 15 && faqCount <= 25 && (await evaluate('document.querySelectorAll(".faq-category").length')) === 6, `${faqCount} questions`);
   check('FAQ privacy answer gives the contact email', await evaluate('!!document.querySelector("#privacy a[href=\\"mailto:Nextgeneration.ai7.0@gmail.com\\"]")'));
-  check('FAQ page links back to the landing page', await evaluate('!!document.querySelector(".back-link a[href=\\"index.html\\"]")'));
+  check('FAQ page links back to the landing page', await evaluate('!!document.querySelector(".back-link a[href=\\"./\\"]")'));
   await click('.faq-category details summary');
   check('FAQ accordion opens', await evaluate('document.querySelector(".faq-category details").open'));
   await screenshot('desktop-faq');
